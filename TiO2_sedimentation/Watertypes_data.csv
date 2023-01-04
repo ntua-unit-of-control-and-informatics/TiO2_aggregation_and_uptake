@@ -1,0 +1,17 @@
+﻿id,Name,Paper,Water type,pH,Conductivity (uS),SO4 (mg/l),Cl (mg/l),K (mg/l),Na (mg/l),Ca (mg/l),Mg (mg/l),Concentration (mg/l),HD_0,HD_60,ksed (1/h)
+1,Santa Barbara seawater,Keller,seawater,8.05,37400.00,3133.00,19333.00,377.80,10620.00,398.00,1361.40,10.00,NA,NA,6.63E-03
+2,artificial seawater,Keller,seawater,7.99,36300.00,2550.00,17667.00,339.80,9726.00,376.00,1225.40,10.00,477.5098859,1227.250362,9.93E-04
+3,artificial seawater,Keller,seawater,7.99,36300.00,2550.00,17667.00,339.80,9726.00,376.00,1225.40,50.00,909.1904639,1950.618358,3.42E-03
+4,artificial seawater,Keller,seawater,7.99,36300.00,2550.00,17667.00,339.80,9726.00,376.00,1225.40,100.00,886.478329,1948.863193,6.39E-03
+5,artificial seawater,Keller,seawater,7.99,36300.00,2550.00,17667.00,339.80,9726.00,376.00,1225.40,200.00,886.478329,1948.863193,1.11E-02
+6,Bodeg Bay seawater,Keller,seawater,8.08,39300.00,3167.00,19333.00,365.90,10010.00,378.40,1191.00,10.00,NA,NA,6.63E-03
+7,USCB lagoon,Keller,lagoon,8.90,23733.00,1400.00,1011.00,190.40,5031.00,213.10,581.00,10.00,NA,NA,3.39E-03
+8,Santa Paula groundwater,Keller,groundwater,7.90,3997.00,1900.00,172.60,14.28,293.70,447.10,224.90,10.00,NA,NA,3.84E-03
+9,Santa Clara river water,Keller,river water,8.33,4507.00,260.00,125.10,3.11,50.18,110.70,34.08,10.00,NA,NA,4.50E-03
+10,estero effluent,Keller,treated effluent,7.68,2780.00,306.67,366.70,35.04,377.90,102.70,49.81,10.00,NA,NA,2.58E-04
+11,mesocosm wastewater,Keller,mesocosm wastewater,7.07,206.00,33.70,46.70,6.41,31.94,8.13,3.57,10.00,NA,NA,2.06E-04
+12,storm runoff,Keller,storm runoff,7.09,591.00,110.00,116.70,17.70,36.33,46.78,13.03,10.00,NA,NA,5.26E-05
+13,mesocosm freshwater,Keller,mesocosm freshwater,8.38,372.00,56.70,103.30,22.28,55.81,17.66,11.37,10.00,313.0563798,314.5400593,6.46E-05
+14,mesocosm freshwater,Keller,mesocosm freshwater,8.38,372.00,56.70,103.30,22.28,55.81,17.66,11.37,50.00,330.8605341,336.7952522,6.46E-05
+15,mesocosm freshwater,Keller,mesocosm freshwater,8.38,372.00,56.70,103.30,22.28,55.81,17.66,11.37,100.00,311.5727003,314.5400593,6.46E-05
+16,mesocosm freshwater,Keller,mesocosm freshwater,8.38,372.00,56.70,103.30,22.28,55.81,17.66,11.37,200.00,311.5727003,314.5400593,6.46E-05
