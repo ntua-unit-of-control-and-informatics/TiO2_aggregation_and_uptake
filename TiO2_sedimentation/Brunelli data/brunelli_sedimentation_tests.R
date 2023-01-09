@@ -44,7 +44,6 @@ optimization_func <- function(exp_data){
   initial_water_concentrations <- c(0.01, 0.1, 1, 10) # given in mg TiO2/L
   x0 <- runif(4, 0, 1e-03)
   N_iter <- 500
-  print(exp_data)
   opts <- list( "algorithm" = "NLOPT_LN_SBPLX", #"NLOPT_LN_NEWUOA",  #"NLOPT_LN_SBPLX" ,
                 "xtol_rel" = 1e-06,
                 "ftol_rel" = 0.0,
