@@ -56,7 +56,8 @@ optimization <- nloptr::nloptr( x0 = x0,
                                 lb	= 0,
                                 opts = opts)
 
-optimization
+# Transform ksed units from "1/min" to "1/h"
+optimization$solution*60
 
 #################
 
@@ -106,6 +107,9 @@ optimization_2 <- nloptr::nloptr(x0 = x0,
                                 opts = opts)
 
 optimization_2
+
+# Transform ksed units from "1/min" to "1/h"
+optimization_2$solution*60
 
 # visualization
 
