@@ -235,9 +235,9 @@ for (i in 1:(dim(extra_data)[2]-1)) {
 }
 
 library(ggplot2)
-# print(hue_pal()(7)) # to return 7 color codes 
-cls <- c("Stormwater"="#F8766D", "Mesocosm_effluent"="#C49A00", "Treated_effluent"="#53B400", "Lagoon"="#00C094", 
-         "Groundwater"="#00B6EB", "Santa_Clara_river"="#A58AFF",  "Seawater"="#FB61D7")
+color_codes <- scales::hue_pal()(7) # to return 7 color codes 
+cls <- c("Stormwater"=color_codes[1], "Mesocosm_effluent"=color_codes[2], "Treated_effluent"=color_codes[3], "Lagoon"=color_codes[4], 
+         "Groundwater"=color_codes[5], "Santa_Clara_river"=color_codes[6],  "Seawater"=color_codes[7])
 keller_2 <- ggplot()+
   geom_line(data = keep_predictions, aes(x=Time, y=Stormwater, color="Stormwater"), size=1.7)+
   geom_line(data = keep_predictions, aes(x=Time, y=Mesocosm_effluent, color="Mesocosm_effluent"), size=1.7)+
