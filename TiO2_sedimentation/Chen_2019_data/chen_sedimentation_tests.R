@@ -130,8 +130,7 @@ plot_func <- function(optimization, exp_data, initial_water_concentrations, plot
     cls[i] <- color_codes[i]
     names(cls)[i] <- strings[i]
   }
-  #cls <- c("10 mg/l"="#F8766D", "100 mg/l"="#7CAE00")
-  
+
   colnames(keep_predictions) <- colnames(exp_data)
   colnames(exp_data) <- colnames(exp_data)
   
