@@ -1,1 +1,15 @@
 test_1: Different F_rate and ke_2 for every NM type and every concentration
+
+test_2: Every nm type has the same set {F_rate, ke_2} for the concentrations 0.1 and 1.0 mg/L and an extra set for the 10mg/L.
+
+test_3: Every nm type has the same value of F_rate for the concentrations 0.1 and 1.0 mg/L and an extra value for the 10mg/L (--> 2 values of F_rate). Every nm_type has 1 common value for the three concentrations.
+
+test_4: Each nm_type described by a unique set {F_rate, ke_2} for all concentrations. 
+----------------------------------------------------------------------------------
+In the following tests there are changes in the model:
+- The water concentration is decreased (due to the filtration process)
+- Fix the filtration rate value and multiply it with "a" parameter, which is TiO2 	type specific. So calculate a set of {a, ke_2}.
+- The concentration in daphnia "C_daphnia" is calculated based on the dry mass of 	daphnia magna. The dry mass of an individual dry daphnia is calculated based on
+	the weight-age data given in the paper of Pauw et al.1981
+- The concentration of TiO2 in water is calculated based on the water volume of 	the experiment (= 100 ml in Chen_2019 experiments). 
+- The value of the ksed comes directly from the RF model, based on the corresponing input data of each experiment (nominal_size, HD size, ph, concentration)

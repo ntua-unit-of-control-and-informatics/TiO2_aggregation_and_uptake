@@ -56,7 +56,7 @@ mape <- function(observed, predicted){
 }
 
 rmse <- function(observed, predicted){
-   sqrt(mean((observed-predicted)^2)) 
+  sqrt(mean((observed-predicted)^2)) 
 }
 
 #=====================================#
@@ -97,14 +97,13 @@ obj_func <- function(x, C_water_0, nm_type){
   colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
   
   constant_params <- c('k_sed'=0.02, 'ku'=0, 'ke_1'=0, 'I'=0)
+  fitted_params <- c("F_rate"=x[1], "ke_2"=x[2])
   
   sol_times <- seq(0,50, 0.5)
   
   scores <- c()
   
   for (i in 1:3) { #loop for the 3 different concentrations
-    
-    fitted_params <- c("F_rate"=x[2*i-1], "ke_2"=x[2*i])
     
     params <- c(fitted_params, constant_params)
     
@@ -127,7 +126,7 @@ obj_func <- function(x, C_water_0, nm_type){
       stop(print("Length of predictions is not equal to the length of data"))
     }
     
-    scores[i] <- mse_custom(exp_data[,i+1], results)
+    scores[i] <- rmse(exp_data[,i+1], results)
     
   }
   return(mean(scores))
@@ -142,9 +141,9 @@ plot_func <- function(optimization, C_water_0, plot_title){
   exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
   colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
   
-  
+  fitted_params <- c("F_rate"=x[1], "ke_2"=x[2])
   constant_params <- c('k_sed'=0.02, 'ku'=0, 'ke_1'=0, 'I'=0)
-
+  
   sol_times <- seq(0,50, 0.5)
   
   mape_scores <- c()
@@ -155,8 +154,6 @@ plot_func <- function(optimization, C_water_0, plot_title){
   colnames(keep_predictions) <- c('Time', 'C1', 'C2', 'C3')
   
   for (i in 1:3) { #loop for the 3 different concentrations
-    
-    fitted_params <- c("F_rate"=x[2*i-1], "ke_2"=x[2*i])
     
     params <- c(fitted_params, constant_params)
     
@@ -173,9 +170,9 @@ plot_func <- function(optimization, C_water_0, plot_title){
                                         events = list(data = eventdat),
                                         method="lsodes",
                                         rtol = 1e-3, atol = 1e-3))
-
+    
     keep_predictions[,i+1] <- solution$C_daphnia
-
+    
   }
   
   head(solution)
@@ -219,32 +216,31 @@ plot_func <- function(optimization, C_water_0, plot_title){
 }
 
 take_results <- function(nm_type, N_iter){
-  x0 <- runif(6)
+  x0 <- runif(2)
   C_water_0 <- c(0.1, 1, 10) # mg/L
   #N_iter <- 3500
   
   opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
-               "xtol_rel" = 0,
-               "ftol_rel" = 0.0,
-               "ftol_abs" = 0.0,
-               "xtol_abs" = 0.0 ,
-               "maxeval" = N_iter,
-               "print_level" = 1)
-
-  optimization <- nloptr::nloptr(x0 = x0,
-                                eval_f = obj_func,
-                                lb	= rep(1e-02,length(x0)),
-                                opts = opts,
-                                C_water_0 = C_water_0,
-                                nm_type = nm_type)
+                "xtol_rel" = 0,
+                "ftol_rel" = 0.0,
+                "ftol_abs" = 0.0,
+                "xtol_abs" = 0.0 ,
+                "maxeval" = N_iter,
+                "print_level" = 1)
   
-
+  optimization <- nloptr::nloptr(x0 = x0,
+                                 eval_f = obj_func,
+                                 lb	= rep(1e-02,length(x0)),
+                                 opts = opts,
+                                 C_water_0 = C_water_0,
+                                 nm_type = nm_type)
+  
+  
   
   fitted_params <- optimization$solution 
   
-  params_df <- data.frame(matrix(fitted_params, nrow = 3, byrow = T))
-  colnames(params_df) <- c("F_rate", "ke_2")
-  rownames(params_df) <- c("0.1 mg/ml", "1 mg/ml", "10 mg/ml") 
+  params_df <- data.frame(fitted_params)
+  rownames(params_df) <- c("F_rate", "ke_2")
   
   results_plot <- plot_func(optimization, C_water_0, nm_type)
   
@@ -261,25 +257,25 @@ nm_types <- as.character(Mapping[,2])
 
 # TiO2-5A
 nm_type <- nm_types[1]
-fit_A <- take_results(nm_type, 3000)
+fit_A <- take_results(nm_type, 5000)
 fit_A 
 
 # TiO2-10A
 nm_type <- nm_types[2]
-fit_B <- take_results(nm_type, 3000)
+fit_B <- take_results(nm_type, 5000)
 fit_B 
 
 # TiO2-100A
 nm_type <- nm_types[3]
-fit_C <- take_results(nm_type, 3000)
+fit_C <- take_results(nm_type, 5000)
 fit_C 
 
 # TiO2-P25
 nm_type <- nm_types[4]
-fit_D <- take_results(nm_type, 3000)
+fit_D <- take_results(nm_type, 5000)
 fit_D 
 
 # TiO2-25R
 nm_type <- nm_types[5]
-fit_E <- take_results(nm_type, 3000)
+fit_E <- take_results(nm_type, 5000)
 fit_E 
