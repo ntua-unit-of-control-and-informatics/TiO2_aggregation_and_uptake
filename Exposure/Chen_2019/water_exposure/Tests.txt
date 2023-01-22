@@ -13,3 +13,7 @@ In the following tests there are changes in the model:
 	the weight-age data given in the paper of Pauw et al.1981
 - The concentration of TiO2 in water is calculated based on the water volume of 	the experiment (= 100 ml in Chen_2019 experiments). 
 - The value of the ksed comes directly from the RF model, based on the corresponing input data of each experiment (nominal_size, HD size, ph, concentration)
+
+test_5: Fitted one set of {a, ke_2} values for each NM type. Totally 5 sets of {a, ke_2} values.
+
+Test_6: Fitted one different "a" fore every NM type and a common ke_2 for all NM types.
