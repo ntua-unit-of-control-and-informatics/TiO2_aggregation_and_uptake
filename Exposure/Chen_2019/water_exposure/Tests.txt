@@ -17,3 +17,5 @@ In the following tests there are changes in the model:
 test_5: Fitted one set of {a, ke_2} values for each NM type. Totally 5 sets of {a, ke_2} values.
 
 Test_6: Fitted one different "a" fore every NM type and a common ke_2 for all NM types.
+
+test_7: Fit one unique "a" for every combination f nm_type and concentration (totally 15 different values for "a") and a ke_2 for all possible combinations

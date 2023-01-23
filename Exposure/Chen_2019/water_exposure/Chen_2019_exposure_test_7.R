@@ -74,10 +74,33 @@ V_water <- 0.1 # L
 # At each measurement 10 daphnias were removed from the system
 N <- seq(80,10,-10)
 
-# Filtering rate of Daphnia magna is considered equal to 23.4 ml/h/mg dry daphnia
-# for immature daphnias, based on Burns et al. 1969.
+# Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
+Filtration_rate_func <- function(temperature, age, adulthood_threshold=14){
+  # load the data for filtration rate
+  filtration_data <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
+  
+  # Keep ony the data for immature or adult daphnia based on the 
+  # age and adulthood_threshold given.
+  if (age <= adulthood_threshold){
+    df <- filtration_data[,1:2]
+  } else{
+    df <- filtration_data[,c(1,3)]
+  }
+  #Interpolation
+  #Set the boundaries about the temperature
+  if(temperature <= min(df$Temperature)){
+    F_rate <- df[which.min(df$Temperature), 2]
+  }else if(temperature >= max(df$Temperature)){
+    F_rate <- df[which.max(df$Temperature), 2]
+  }else{
+    F_rate <- approx(df[,1], df[,2], temperature)
+  }
+  return(F_rate)
+}
+# Units of filtration rate are ml water/h/mg dry weight of daphnia
+F_rate <- Filtration_rate_func(22, 10)$y
 # Multiply with the average dry weight (transformed into mg) of an individual.
-F_rate <- 23.4*dry_weight # ml/h/individual 
+F_rate <- F_rate*dry_weight
 
 # Load the predicted ksed values
 ksed_predicted <- read.csv("Chen_2019_ksed_predictions.csv")
@@ -139,7 +162,7 @@ ode_func <- function(time, inits, params){
     }
     
     # C_water: TiO2 concentration in water
-    dC_water <- - (a*F_rate*N_current/V_water + k_sed + ku)*C_water
+    dC_water <- - (a*(F_rate/1000)*N_current/V_water + k_sed + ku)*C_water
     
     # Algae
     dC_algae <- ku*C_water - ke_1*C_algae
@@ -162,8 +185,8 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
     exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
     colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
     
-    fitted_params <- c("a"=x[j], "ke_2"=x[6])
-    
+    triplette_alphas <- c(x[(3*j-2) : (3*j)])
+
     sol_times <- seq(0,50, 0.5)
     
     score_per_conc <- c()
@@ -172,6 +195,7 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"], 
                            'ku'=0, 'ke_1'=0, 'I'=0)
+      fitted_params <- c("a"=triplette_alphas[i], "ke_2"=x[16])
       params <- c(fitted_params, constant_params)
       
       inits <- c('C_water'=C_water_0[i], 'C_algae'=0, 'C_daphnia'=0 )
@@ -216,7 +240,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
     exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
     colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
     
-    fitted_params <- c("a"=x[j], "ke_2"=x[6])
+    triplette_alphas <- c(x[(3*j-2) : (3*j)])
     
     sol_times <- seq(0,50, 0.5)
     
@@ -228,6 +252,8 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"], 
                            'ku'=0, 'ke_1'=0, 'I'=0)
+      fitted_params <- c("a"=triplette_alphas[i], "ke_2"=x[16])
+      
       params <- c(fitted_params, constant_params)
       
       inits <- c('C_water'=C_water_0[i], 'C_algae'=0, 'C_daphnia'=0 )
@@ -252,7 +278,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
     color_codes <- scales::hue_pal()(3) # to return 5 color codes 
     cls <- c()  
     for (i in 1:length(strings)) {
-      strings[i] <- paste0(strings[i], " mg/ml")
+      strings[i] <- paste0(strings[i], " mg/l")
       cls[i] <- color_codes[i]
       names(cls)[i] <- strings[i]
     }
@@ -269,7 +295,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
       
       
       labs(title = nm_types[j],
-           y = "Concentration in Daphnia Magna (mg TiO2/g daphnia)", x = "Time (hours)")+
+           y = "Concentration in Daphnia Magna (mg TiO2/mg daphnia)", x = "Time (hours)")+
       theme(plot.title = element_text(hjust = 0.5,size=30), 
             axis.title.y =element_text(hjust = 0.5,size=25,face="bold"),
             axis.text.y=element_text(size=22),
@@ -290,7 +316,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
 }
 
 take_results <- function(nm_types, N_iter){
-  x0 <- rep(1e-04,6)
+  x0 <- rep(1e-02,16)
   C_water_0 <- c(0.1, 1, 10) # mg/L
   
   opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
@@ -303,8 +329,8 @@ take_results <- function(nm_types, N_iter){
   
   optimization <- nloptr::nloptr(x0 = x0,
                                  eval_f = obj_func,
-                                 lb	= rep(1e-10,length(x0)),
-                                 ub = c(rep(1e-03,5), 1),
+                                 lb	= rep(1e-5,length(x0)),
+                                 ub = c(rep(1,15), 1),
                                  opts = opts,
                                  C_water_0 = C_water_0,
                                  nm_types = nm_types,
@@ -315,25 +341,25 @@ take_results <- function(nm_types, N_iter){
   
   
   
-  fitted_params <- optimization$solution 
-  
-  params_df <- data.frame(fitted_params)
-  alphas_names <- c() 
-  for (i in 1:5) {
-    alphas_names[i] <- paste0("a_", nm_types[i])  
-  }
-  rownames(params_df) <- c(alphas_names, "ke_2")
-  
+  fitted_params <- optimization$solution
+
+  alphas_df <- data.frame(matrix(fitted_params[1:15], byrow = T, nrow = 5) )
+  colnames(alphas_df) <- c('0.1 mg/ml', '1.0 mg/ml', '10 mg/ml')
+  rownames(alphas_df) <- nm_types
+  ke_2 <- fitted_params[16]
   results_plots <- plot_func(optimization, C_water_0, nm_types,
-                            V_water = V_water,
-                            F_rate = F_rate, 
-                            dry_weight=dry_weight,
-                            ksed_predicted=ksed_predicted)
+                             V_water = V_water,
+                             F_rate = F_rate, 
+                             dry_weight=dry_weight,
+                             ksed_predicted=ksed_predicted)
   
   return(list("optimization" = optimization,
-              "Fitted_params" = params_df,
+              "alphas_df" = alphas_df,
+              "ke_2"=ke_2,
               "plot"=results_plots))
   
 }
+################################################################################
+nm_types <- as.character(Mapping[,2])
 
-fit <- take_results(nm_types, 500)
+fit <- take_results(nm_types, 2500)
