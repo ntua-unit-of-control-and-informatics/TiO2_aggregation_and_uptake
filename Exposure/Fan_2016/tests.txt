@@ -1,0 +1,1 @@
+test_1: Fit only on Fan_2016 exposure data different alphas for each nm_type and 

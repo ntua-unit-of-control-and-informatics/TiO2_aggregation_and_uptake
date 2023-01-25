@@ -1,8 +1,8 @@
-setwd("C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Dry Weight - Age")
-df <- read.csv('weight_growth_data_Pauw_1981.csv')
-df[,1] <- round(df[,1])
-
 weight_calc <- function(age){
+  
+  df <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
+  df[,1] <- round(df[,1])
+  
   age_span <- df[,1]
   weight_span <- df[,2]
 

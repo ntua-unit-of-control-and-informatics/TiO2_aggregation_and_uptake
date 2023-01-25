@@ -75,13 +75,27 @@ V_water <- 0.1 # L
 N <- seq(80,10,-10)
 
 # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
-Filtration_rate_func <- function(temperature, age, adulthood_threshold=14){
-  # load the data for filtration rate
-  filtration_data <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
+Filtration_rate_func <- function(temperature, dry_mass, dry_mass_threshold=0.034){
+  # UNITS
+  # temperature: C
+  # dry_mass: mg 
+  # F_rate: ml/h/mg dry daphnia
+  
+  # dry_mass_threshold is the threshold to decide if a daphnia organism should be
+  # considered as juvenile or adult. According to Burns et al.1969. Daphnia 
+  # organisms with length lower than(approximately) 1.5 mm are considered as juveniles.
+  # Based on the given equation that relates the dry mass to the length of the 
+  # organism in the same paper ( W (mg) = 0.0116*L^2.67 ), the dry mass 
+  # of a daphnia with length 1.5 mm has dry mass equal to 0.034mg. So daphnia 
+  # organism with dry mass greater than this threshold must be considered as adults
+  # for the calculation of F_rate.
   
   # Keep ony the data for immature or adult daphnia based on the 
   # age and adulthood_threshold given.
-  if (age <= adulthood_threshold){
+  
+  filtration_data <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
+  
+  if (dry_mass <= dry_mass_threshold){
     df <- filtration_data[,1:2]
   } else{
     df <- filtration_data[,c(1,3)]
@@ -98,7 +112,7 @@ Filtration_rate_func <- function(temperature, age, adulthood_threshold=14){
   return(F_rate)
 }
 # Units of filtration rate are ml water/h/mg dry weight of daphnia
-F_rate <- Filtration_rate_func(22, 10)$y
+F_rate <- Filtration_rate_func(22, dry_weight)$y
 # Multiply with the average dry weight (transformed into mg) of an individual.
 F_rate <- F_rate*dry_weight
 
@@ -194,7 +208,7 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
     for (i in 1:3) { #loop for the 3 different concentrations
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"], 
-                           'ku'=0, 'ke_1'=0, 'I'=0)
+                           'ku'=0, 'ke_1'=0)
       fitted_params <- c("a"=triplette_alphas[i], "ke_2"=x[16])
       params <- c(fitted_params, constant_params)
       
@@ -320,7 +334,7 @@ take_results <- function(nm_types, N_iter){
   C_water_0 <- c(0.1, 1, 10) # mg/L
   
   opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
-                "xtol_rel" = 0.0,
+                "xtol_rel" = 1e-07,
                 "ftol_rel" = 0.0,
                 "ftol_abs" = 0.0,
                 "xtol_abs" = 0.0 ,
@@ -329,7 +343,7 @@ take_results <- function(nm_types, N_iter){
   
   optimization <- nloptr::nloptr(x0 = x0,
                                  eval_f = obj_func,
-                                 lb	= rep(1e-5,length(x0)),
+                                 #lb	= rep(1e-5,length(x0)),
                                  ub = c(rep(1,15), 1),
                                  opts = opts,
                                  C_water_0 = C_water_0,
@@ -362,4 +376,4 @@ take_results <- function(nm_types, N_iter){
 ################################################################################
 nm_types <- as.character(Mapping[,2])
 
-fit <- take_results(nm_types, 2500)
+fit <- take_results(nm_types, 1000)
