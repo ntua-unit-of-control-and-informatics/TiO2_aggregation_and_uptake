@@ -1,0 +1,9 @@
+test_1: -one different alpha per concentration and nm_type
+		-Added the saturation term (1-C_daphnia/C_sat)
+
+test_2: -Consider that all daphnias from Chen are 7 days old
+		-Consider that all daphnias from Fan are 14 days old
+		-fit only one alpha per nm_type
+		-use the saturation term (1-C_daphnia/C_sat)
+		-Add t_lag for the elimination
+		-fit a unique ke_2 value for all
