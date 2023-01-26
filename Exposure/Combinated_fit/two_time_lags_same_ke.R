@@ -403,6 +403,7 @@ obj_func <- function(x, list_of_experiments){
           sub_x <- x[1:5]
           a <- sub_x[j] 
           ke_2 <- x[length(x)-1]
+          t_0 <- x[length(x)-3]
 
         }else if(exp_id==2){ #case of Fan_2016
           
@@ -418,6 +419,7 @@ obj_func <- function(x, list_of_experiments){
           sub_x <- x[6:11]
           a <- sub_x[j] 
           ke_2 <- x[length(x)]
+          t_0 <- x[length(x)-2]
           
         }
         
@@ -425,7 +427,7 @@ obj_func <- function(x, list_of_experiments){
         constant_params <- c("exp_id" = exp_id, "F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                              'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"], 
                              'ku'=0, 'ke_1'=0)
-        fitted_params <- c("a"=a, "C_sat"= x[length(x)-3], "t_0"=x[length(x)-2], "ke_2"=ke_2)
+        fitted_params <- c("a"=a, "C_sat"= x[length(x)-4], "t_0"=t_0, "ke_2"=ke_2)
         params <- c(fitted_params, constant_params)
         
         solution <- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
@@ -611,8 +613,8 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX", #"NLOPT_LN_NEWUOA", #"NLOPT_LN_SBP
 
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(rep(0,(length(x0)-4)), 0.25, 0, 0, 0),
-                               ub = c(rep(4, length(x0)-4), 1 ,5,0, 0.2, 0.2),
+                               lb	= c(rep(0,(length(x0)-5)), 0.18, 0, 0, 0,0),
+                               ub = c(rep(4, length(x0)-5), 1 ,5,5, 0.2, 0.2),
                                opts = opts,
                                list_of_experiments=list_of_experiments)
 
@@ -624,8 +626,9 @@ names(alphas_Chen_2019) <- Chen_2019_datalist$Mapping$Type
 alphas_Fan_2016 <- c(fitted_params[6:11])
 names(alphas_Fan_2016) <- Fan_2016_datalist$Mapping$Type
 
-C_sat <- fitted_params[length(fitted_params)-3]
-t_0 <- fitted_params[length(fitted_params)-2]
+C_sat <- fitted_params[length(fitted_params)-4]
+t_0_chen <- fitted_params[length(fitted_params)-3]
+t_0_fan <- fitted_params[length(fitted_params)-2]
 ke_2_chen <- fitted_params[length(fitted_params)-1]
 ke_2_fan <- fitted_params[length(fitted_params)]
 
