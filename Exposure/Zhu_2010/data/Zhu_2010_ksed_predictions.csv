@@ -1,0 +1,3 @@
+Name,Particle size (nm),HD_60,Concentration (mg/l),pH,y_pred
+P25,25,580.5,0.1,8,0.07119
+P25,25,580.5,1.0,8,0.19746000000000002
