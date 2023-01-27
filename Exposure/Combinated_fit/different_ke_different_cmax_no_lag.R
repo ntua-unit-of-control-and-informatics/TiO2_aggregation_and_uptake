@@ -334,7 +334,7 @@ ode_func <- function(time, inits, params){
         N_current <- N[6]
       }else if (30 <= time & time < 36){
         N_current <- N[7]
-      }else if (36 <= time & time ){
+      }else if (36 <= time ){
         N_current <- N[8]
       }
     }else if(exp_id == 2){ # case of Fan_2016
@@ -348,11 +348,8 @@ ode_func <- function(time, inits, params){
     dC_algae <- ku*C_water - ke_1*C_algae
     
     # Daphnia magna
-    if(time < t_0){
-      dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight + F_rate*C_algae 
-    }else{
       dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight + F_rate*C_algae - ke_2*C_daphnia  
-    }
+    
     
     return(list(c(dC_water, dC_algae, dC_daphnia)))
   })
