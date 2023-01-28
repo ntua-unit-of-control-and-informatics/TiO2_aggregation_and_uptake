@@ -3,6 +3,8 @@
 
 setwd("C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Zhu_2010")
 
+
+
 # Calculate the dry weight of daphnia in mg based on Pauw et al.1981 data
 weight_calc <- function(age){
   
@@ -14,13 +16,12 @@ weight_calc <- function(age){
   
   if(age <= min(age_span)){
     dry_weight <- min(weight_span)
-  }else if(age <= min(age_span)){
+  }else if(age >= max(age_span)){  #Change here
     dry_weight <- max(weight_span)
   }else{ 
-    index <- which.min(abs(age - age_span))
-    dry_weight <- weight_span[index]    
+    dry_weight <- approx(df[,1], df[,2], age)  #Change here
   }
-  return(dry_weight)
+  return(dry_weight$y)
 }
 
 # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
@@ -58,10 +59,8 @@ Filtration_rate_func <- function(temperature, dry_mass, dry_mass_threshold=0.034
   }else{
     F_rate <- approx(df[,1], df[,2], temperature)
   }
-  return(F_rate)
+  return(F_rate$y)
 }
-
-
 
 #=================#
 #  Water exposure #
@@ -89,9 +88,17 @@ exposure_data[,c(2,3)] <- exposure_data[,c(2,3)]*1e-03 # tranform to mg TiO2/mg 
 C1_data <-  exposure_data[,c(1,2)] # data for 0.1 mg/l exposure
 C2_data <-  exposure_data[,c(1,3)] # data for 1.0 mg/l exposure
 
+# Age from start until the end of the experiment
+age <- 8 
+
 # The daphnias used in water exposure experiments are between 7 and 14 days old
 # We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(8) # mg dry weight of individual daphnia 
+dry_weight <- weight_calc(age) # mg dry weight of individual daphnia 
+
+# Units of filtration rate are ml water/h/mg dry weight of daphnia
+F_rate <- Filtration_rate_func(dry_weight, temperature = 22)
+# Multiply with the average dry weight (transformed into mg) of an individual.
+F_rate <- F_rate*dry_weight
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
@@ -101,19 +108,15 @@ V_water <- 0.1 # L
 # At each measurement 10 daphnias were removed from the system
 #N <- seq(80,10,-10)
 
-# Units of filtration rate are ml water/h/mg dry weight of daphnia
-F_rate <- Filtration_rate_func(22, dry_weight)$y
-# Multiply with the average dry weight (transformed into mg) of an individual.
-F_rate <- F_rate*dry_weight
 
 # Load the predicted ksed values
 ksed_predicted <- read.csv("C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Zhu_2010/data/Zhu_2010_ksed_predictions.csv")
 ksed_predicted <- ksed_predicted[, c(1,4,6)]
 colnames(ksed_predicted) <- c("Name", "Concentration_mg/L", "k_sed")
 
-
+#==============================
 # *** metrics ***
-
+#=============================
 # The metric used for the optimization
 mse_custom <- function(observed, predicted){
   mean((observed - predicted)^2)
@@ -127,7 +130,18 @@ rmse <- function(observed, predicted){
   sqrt(mean((observed-predicted)^2)) 
 }
 
-
+AAFE <- function(predictions, observations, times=NULL){
+  y_obs <- unlist(observations)
+  y_pred <- unlist(predictions)
+  # Total number of observations
+  N<- length(y_obs)
+  log_ratio <- rep(NA, N) 
+  for ( i in 1:N){
+    log_ratio[i] <- abs(log((y_pred[i]/y_obs[i]), base = 10))
+  }
+  aafe <- 10^(sum(log_ratio)/N) 
+  return(aafe)
+}
 #=====================================#
 # Functions used for the optimization #
 #=====================================#
@@ -142,47 +156,43 @@ ode_func <- function(time, inits, params){
     # C_algae: mg TiO2 / g algae 
     # C_daphnia: mg TiO2 / mg daphnia 
     # k_sed: 1/h
-    # ku: 1/h
-    # F_rate: L water/h per individual daphnia 
+    # F_rate: L water/h/individual daphnia 
     # ke_2: 1/h
     
-    N <- seq(180,20,-20)
-    if (time < 3){
-      N_current <- N[1] #180
-    }else if (3 <= time & time < 6){
-      N_current <- N[2] #160
-    }else if (6 <= time & time < 12){
-      N_current <- N[3] #140
-    }else if (12 <= time & time < 24){
-      N_current <- N[4] #120
-    }else if (24 <= time & time < 30){
-      N_current <- N[5] #100
-    }else if (30 <= time & time < 36){
-      N_current <- N[6] #80
-    }else if (36 <= time & time < 48){
-      N_current <- N[7] #60
-    }else if (48 <= time & time < 72){
-      N_current <- N[8] #40
-    }else if (72 <= time ){
-      N_current <- N[9] #20
-    }
+    # Number of Daphnids per beaker
+    N <- 20
+    C_sat <- 0.2781108 # From fitting to Chen et al. (2019) data
+    C_water = M_water/V_water
+    C_daphnia = M_daphnia_tot/dry_weight/N
+    k_sed = 0
+    
+    # TiO2 mass in all D.magna
+    dM_daphnia_tot = N*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water -
+                 N*ke_2*C_daphnia*dry_weight  
+    
+    # Excreted from each D.magna
+    dM_Daphnia_excreted <-  N*ke_2*C_daphnia*dry_weight
     
     
-    # C_water: TiO2 concentration in water
-    dC_water <- - (a*(F_rate/1000)*(1-C_daphnia/C_sat)*N_current/V_water + k_sed + ku)*C_water
+    # TiO2 mass in water
+    dM_water <- - (N*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water +
+                   k_sed*V_water*C_water) + N*ke_2*C_daphnia*dry_weight
+    # Mass in  Sediment
+    dM_sed = k_sed*V_water*C_water
+  
+    # Mass balance of TiO2 (should always be equal to initial mass)
+    Mass_balance = M_daphnia_tot + M_water + M_sed
     
-    # Algae
-    dC_algae <- ku*C_water - ke_1*C_algae
     
-    # Daphnia magna
-    dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight + F_rate*C_algae - ke_2*C_daphnia  
-    
-    return(list(c(dC_water, dC_algae, dC_daphnia)))
+    return(list(c(dM_daphnia_tot,dM_Daphnia_excreted, dM_water,dM_sed),
+                "C_water" = C_water, 
+                "C_daphnia" = C_daphnia, "Mass_balance" = Mass_balance))
   })
 }
 
 # obj_func function to minimize
-obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted){
+obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight,
+                     age, ksed_predicted){
   
   nm_type <- nm_types
   
@@ -194,22 +204,21 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
   
   for (i in 1:2) { #loop for the 2 different concentrations
     constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
-                         'k_sed'= ifelse(i==1, ksed_predicted$k_sed[1], ksed_predicted$k_sed[2]), 
-                         'ku'=0, 'ke_1'=0)
-    fitted_params <- c("a"=x[1], "ke_2"=x[2], "C_sat"=x[3])
+                         'k_sed'= ifelse(i==1, ksed_predicted$k_sed[1], ksed_predicted$k_sed[2]))
+    fitted_params <- c("a"=x[1], "ke_2"=x[2])
     params <- c(fitted_params, constant_params)
     
-    inits <- c('C_water'=C_water_0[i], 'C_algae'=0, 'C_daphnia'=0 )
-    
-    # create events to force C_water=0 at time = 2 hours
-    eventdat <- data.frame(var = c("C_water"),
-                           time = 24,
-                           value = 0,
-                           method = 'rep'
-    )
+    inits <- c('M_daphnia_tot' = 0,'M_Daphnia_excreted' = 0,
+               'M_water' =  C_water_0[i]*V_water,'M_sed' = 0)
 
+    # Water is renewed during depuration after each sampling point
+    refresh_moments <- rep(24,6) +c(0, 6, 12, 24, 48, 72)
+    eventdat <- data.frame(var = c("M_water"),
+                           time = c(refresh_moments) ,
+                           value = rep(0, length(refresh_moments)),
+                           method = rep("rep", (length(refresh_moments)))) 
     
-    solution <- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
+    solution <<- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
                                         parms = params,
                                         events = list(data = eventdat),
                                         method="lsodes",
@@ -228,7 +237,8 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
 }
 
 
-plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted){
+plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight,
+                      age, ksed_predicted){
   
   library(ggplot2)
   x <- optimization$solution
@@ -246,25 +256,19 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
   
   for (i in 1:2) { #loop for the 2 different concentrations
     constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
-                         'k_sed'= ifelse(i==1, ksed_predicted$k_sed[1], ksed_predicted$k_sed[2]), 
-                         'ku'=0, 'ke_1'=0)
-    fitted_params <- c("a"=x[1], "ke_2"=x[2], "C_sat"=x[3])
+                         'k_sed'= ifelse(i==1, ksed_predicted$k_sed[1], ksed_predicted$k_sed[2]))
+    fitted_params <- c("a"=x[1], "ke_2"=x[2])
     params <- c(fitted_params, constant_params)
     
-    inits <- c('C_water'=C_water_0[i], 'C_algae'=0, 'C_daphnia'=0 )
+    inits <- c('M_daphnia_tot' = 0,'M_Daphnia_excreted' = 0,
+               'M_water' =  C_water_0[i]*V_water,'M_sed' = 0)
     
-    # create events to force C_water=0 at time = 2 hours
-    eventdat <- data.frame(var = c("C_water"),
-                           time = 24,
-                           value = 0,
-                           method = 'rep'
-    )
-    # refresh_moments <- seq(3,21)
-    # eventdat <- data.frame(var = c("C_water"),
-    #                        time = c(refresh_moments,24) ,
-    #                        value = c(rep(inits[1], length(refresh_moments)), 0),
-    #                        method = c(rep("rep", (length(refresh_moments)+1)))
-    # )
+    # Water is renewed during depuration after each sampling point
+    refresh_moments <- rep(24,6) +c(0, 6, 12, 24, 48, 72)
+    eventdat <- data.frame(var = c("M_water"),
+                           time = c(refresh_moments) ,
+                           value = rep(0, length(refresh_moments)),
+                           method = rep("rep", (length(refresh_moments)))) 
     
     solution <- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
                                         parms = params,
@@ -317,7 +321,9 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
 
 nm_types <- as.character(Mapping[,2])
 #x0 <- runif(3)
-x0 <- c(0.2933361, 0.08813155, 0.2781108)
+#x0 <- c("a" = 0.2933361, "ke_2" = 0.08813155, "C_sat" = 0.2781108)
+x0 <- c(0.2933361, 0.08813155)
+
 C_water_0 <- c(0.1, 1) # mg/L
 
 opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
@@ -325,27 +331,27 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
               "ftol_rel" = 1e-07,
               "ftol_abs" = 0.0,
               "xtol_abs" = 0.0 ,
-              "maxeval" = 100,
+              "maxeval" = 1000,
               "print_level" = 1)
 
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(0, 0, 0.001),
-                               #ub = c(4,1,0.5),
+                               lb	= c(0, 0),
+                               ub = c(4,0.2),
                                opts = opts,
                                C_water_0 = C_water_0,
                                nm_types = nm_types,
                                V_water = V_water,
                                F_rate = F_rate, 
                                dry_weight=dry_weight,
+                               age = age,
                                ksed_predicted=ksed_predicted)
 
-fitted_params <- optimization$solution
+fit_pars <- optimization$solution
 
-alphas_df <- data.frame(matrix(fitted_params[1:18], byrow = T, nrow = 6) )
-colnames(alphas_df) <- c('0.1 mg/ml', '1.0 mg/ml', '10 mg/ml')
-rownames(alphas_df) <- nm_types
-ke_2 <- fitted_params[19]
+alpha <-fit_pars[1]
+ke_2 <- fit_pars[2]
 
-plot_func(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted)
+plot_func(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, 
+          age = age, ksed_predicted)
 
