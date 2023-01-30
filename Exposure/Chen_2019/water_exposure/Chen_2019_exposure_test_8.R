@@ -3,7 +3,14 @@ C_water# This is a script to simulate the experiments in Cehn et al., 2019
 # The second is about the trophic exposure to TiO2 exposured algae.
 
 # Working directory
-setwd('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure')
+# dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
+# dir_uptake <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
+# dir_filtration <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
+
+dir_uptake <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
+dir_filtration <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
+dir <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
+setwd(dir)
 
 #=================#
 #  Water exposure #
@@ -43,9 +50,9 @@ C3_data <- read.csv('data/10_water_exposure.csv')
 colnames(C3_data)[-1] <- Mapping$Type
 C3_data[,2:6] <-  C3_data[,2:6]/1e06 # transform from mg/kg daphnia to mg/mg daphnia
 
-weight_calc <- function(age){
-  
-  df <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
+weight_calc <- function(age, directory){
+  setwd(directory)
+  df <- read.csv('Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
   df[,1] <- round(df[,1])
   
   age_span <- df[,1]
@@ -63,7 +70,7 @@ weight_calc <- function(age){
 
 # The daphnias used in water exposure experiments are between 7 and 14 days old
 # We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(10) # mg dry weight of individual daphnia 
+dry_weight <- weight_calc(10, dir_uptake) # mg dry weight of individual daphnia 
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
@@ -74,7 +81,8 @@ V_water <- 0.1 # L
 N <- seq(80,10,-10)
 
 # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
-Filtration_rate_func <- function(temperature, dry_mass, dry_mass_threshold=0.034){
+Filtration_rate_func <- function(temperature, dry_mass, directory, dry_mass_threshold=0.034){
+  setwd(directory)
   # UNITS
   # temperature: C
   # dry_mass: mg 
@@ -92,7 +100,7 @@ Filtration_rate_func <- function(temperature, dry_mass, dry_mass_threshold=0.034
   # Keep ony the data for immature or adult daphnia based on the 
   # age and adulthood_threshold given.
   
-  filtration_data <- read.csv('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
+  filtration_data <- read.csv('Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
   
   if (dry_mass <= dry_mass_threshold){
     df <- filtration_data[,1:2]
@@ -111,10 +119,11 @@ Filtration_rate_func <- function(temperature, dry_mass, dry_mass_threshold=0.034
   return(F_rate$y)
 }
 # Units of filtration rate are ml water/h/mg dry weight of daphnia
-F_rate <- Filtration_rate_func(22, dry_weight)
+F_rate <- Filtration_rate_func(22, dry_weight,dir_filtration)
 # Multiply with the average dry weight (transformed into mg) of an individual.
 F_rate <- F_rate*dry_weight
 
+setwd(dir)
 # Load the predicted ksed values
 ksed_predicted <- read.csv("Chen_2019_ksed_predictions.csv")
 ksed_predicted <- ksed_predicted[, c(1,4,6)]
@@ -175,7 +184,8 @@ ode_func <- function(time, inits, params){
     }
     
     # C_water: TiO2 concentration in water
-    dC_water <- - (a*(F_rate/1000)*(1-C_daphnia/C_sat)*N_current/V_water + k_sed)*C_water + ke_2*C_daphnia*dry_weight*N_current/V_water
+    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water-
+                    k_sed*C_water
     
     # Daphnia magna
     dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
@@ -184,15 +194,16 @@ ode_func <- function(time, inits, params){
     dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight  
     
     # Mass in  Sediment
-    dM_sed = k_sed*V_water*C_water
+    dM_sed <- k_sed*C_water*V_water
     
     # TiO2 mass in all D.magna
     M_daphnia_tot <- C_daphnia*dry_weight*N_current
     
+    # TiO2 mass in water
     M_water <- C_water*V_water
     
-    # Mass balance of TiO2 (should always be equal to initial mass)
-    Mass_balance = M_daphnia_tot + M_water + M_sed
+    # Mass balance of TiO2 (should always be the total mass of the system)
+    Mass_balance = M_daphnia_tot + M_water + M_sed + M_Daphnia_excreted
     
     return(list(c(dC_water, dC_daphnia, dM_Daphnia_excreted, dM_sed),
                 "M_daphnia_tot"=M_daphnia_tot,
