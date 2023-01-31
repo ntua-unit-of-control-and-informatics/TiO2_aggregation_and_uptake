@@ -221,7 +221,7 @@ ode_func <- function(time, inits, params){
     N_current <- 10
     
     # C_water: TiO2 concentration in water
-    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water + M_Daphnia_excreted/V_water
+    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water 
     
     # Daphnia magna
     dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
