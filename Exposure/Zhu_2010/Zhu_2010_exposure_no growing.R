@@ -4,24 +4,48 @@
 setwd("C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Zhu_2010")
 
 
-
-# Calculate the dry weight of daphnia in mg based on Pauw et al.1981 data
-weight_calc <- function(age){
+# Betini et al. (2019)
+#input: age [days], temperature [oC], food["low"/"high"]
+size_estimation_mm <- function(age, temperature, food){
   
-  df <- read.csv('C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
-  df[,1] <- round(df[,1])
+  # T = 15 o C
+  a_low_15 <-0.354
+  b_low_15 <- 0.527
+  a_high_15 <- 0.105
+  b_high_15 <- 0.953
   
-  age_span <- df[,1]
-  weight_span <- df[,2]
+  # T = 25 o C
+  a_low_25 <- 0.811
+  b_low_25 <- 0.355
+  a_high_25 <- 0.698
+  b_high_25 <- 0.83
   
-  if(age <= min(age_span)){
-    dry_weight <- min(weight_span)
-  }else if(age >= max(age_span)){  #Change here
-    dry_weight <- max(weight_span)
-  }else{ 
-    dry_weight <- approx(df[,1], df[,2], age)  #Change here
+  if(food == "low"){
+    if(temperature <= 15){
+      a <- a_low_15
+      b <- b_low_15
+    }else if(temperature >= 25){  
+      a <- a_low_25
+      b <- b_low_25
+    }else{ 
+      a <- approx(c(15,25), c(a_low_15, a_low_25), temperature)$y
+      b <- approx(c(15,25), c(b_low_15, b_low_25), temperature)$y
+    }
+  }else if (food == "high"){
+    if(temperature <= 15){
+      a <- a_high_15
+      b <- b_high_15
+    }else if(temperature >= 25){  
+      a <- a_high_25
+      b <- b_high_25
+    }else{ 
+      a <- approx(c(15,25), c(a_high_15, a_high_25), temperature)$y
+      b <- approx(c(15,25), c(b_high_15, b_high_25), temperature)$y
+    }
+  }else{
+    stop('food must be either "low" or "high" ')
   }
-  return(dry_weight$y)
+  return(a + b * log(age))
 }
 
 # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
@@ -88,12 +112,17 @@ exposure_data[,c(2,3)] <- exposure_data[,c(2,3)]*1e-03 # tranform to mg TiO2/mg 
 C1_data <-  exposure_data[,c(1,2)] # data for 0.1 mg/l exposure
 C2_data <-  exposure_data[,c(1,3)] # data for 1.0 mg/l exposure
 
-# Age from start until the end of the experiment
-age <- 8 
-
-# The daphnias used in water exposure experiments are between 7 and 14 days old
-# We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(age) # mg dry weight of individual daphnia 
+age <- 8 #days
+temperature = 22 #oC
+food = "low" #low/high
+L = size_estimation_mm(age,temperature,food) #mm
+#Units L:mm, w: mg
+# Dumont et al. (1975)
+w1 = (1.89e-06*(L*1000)^2.25)/1000 #mg
+w2 = (4.88e-05*(L*1000)^1.80)/1000
+# Pauw et al. (1981)
+w3 = 0.01*(L)^2.62
+dry_weight = mean(c(w1,w2,w3))
 
 # Units of filtration rate are ml water/h/mg dry weight of daphnia
 F_rate <- Filtration_rate_func(dry_weight, temperature = 22)
@@ -102,7 +131,7 @@ F_rate <- F_rate*dry_weight
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
-V_water <- 0.1 # L
+V_water <- 0.03 # L
 
 # Population of daphnias during the experiments
 # At each measurement 10 daphnias were removed from the system
@@ -160,33 +189,37 @@ ode_func <- function(time, inits, params){
     # ke_2: 1/h
     
     # Number of Daphnids per beaker
-    N <- 20
-    C_sat <- 0.2781108 # From fitting to Chen et al. (2019) data
-    C_water = M_water/V_water
-    C_daphnia = M_daphnia_tot/dry_weight/N
+    N_current <- 20
+    C_sat <- 0.16317920 # From fitting to Chen et al. (2019) data
     k_sed = 0
     
-    # TiO2 mass in all D.magna
-    dM_daphnia_tot = N*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water -
-                 N*ke_2*C_daphnia*dry_weight  
-    
+    #C_water: TiO2 concentration in water
+    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water-
+      k_sed*C_water
+  
+    # Daphnia magna
+    dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
+      
     # Excreted from each D.magna
-    dM_Daphnia_excreted <-  N*ke_2*C_daphnia*dry_weight
+    dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight
     
+    # Mass in  Sediment
+    dM_sed <- k_sed*C_water*V_water
+    
+    # TiO2 mass in all D.magna
+    M_daphnia_tot <- C_daphnia*dry_weight*N_current
     
     # TiO2 mass in water
-    dM_water <- - (N*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water +
-                   k_sed*V_water*C_water) + N*ke_2*C_daphnia*dry_weight
-    # Mass in  Sediment
-    dM_sed = k_sed*V_water*C_water
-  
-    # Mass balance of TiO2 (should always be equal to initial mass)
-    Mass_balance = M_daphnia_tot + M_water + M_sed
+    M_water <- C_water*V_water
     
+    # Mass balance of TiO2 (should always be the total mass of the system)
+    Mass_balance = M_daphnia_tot + M_water + M_sed + M_Daphnia_excreted
     
-    return(list(c(dM_daphnia_tot,dM_Daphnia_excreted, dM_water,dM_sed),
-                "C_water" = C_water, 
-                "C_daphnia" = C_daphnia, "Mass_balance" = Mass_balance))
+    return(list(c(dC_water, dC_daphnia, dM_Daphnia_excreted, dM_sed),
+                "M_daphnia_tot"=M_daphnia_tot,
+                "M_water"=M_water,
+                "Mass_balance"=Mass_balance))
+    
   })
 }
 
@@ -208,12 +241,12 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight,
     fitted_params <- c("a"=x[1], "ke_2"=x[2])
     params <- c(fitted_params, constant_params)
     
-    inits <- c('M_daphnia_tot' = 0,'M_Daphnia_excreted' = 0,
-               'M_water' =  C_water_0[i]*V_water,'M_sed' = 0)
-
+    inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
+               'M_sed'=0)
+   
     # Water is renewed during depuration after each sampling point
     refresh_moments <- rep(24,6) +c(0, 6, 12, 24, 48, 72)
-    eventdat <- data.frame(var = c("M_water"),
+    eventdat <- data.frame(var = c("C_water"),
                            time = c(refresh_moments) ,
                            value = rep(0, length(refresh_moments)),
                            method = rep("rep", (length(refresh_moments)))) 
@@ -229,7 +262,7 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight,
       stop(print("Length of predictions is not equal to the length of data"))
     }
     
-    score_per_conc[i] <- rmse(exp_data[,i+1], results)
+    score_per_conc[i] <- AAFE(exp_data[,i+1], results)
     
   }
   
@@ -260,12 +293,12 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
     fitted_params <- c("a"=x[1], "ke_2"=x[2])
     params <- c(fitted_params, constant_params)
     
-    inits <- c('M_daphnia_tot' = 0,'M_Daphnia_excreted' = 0,
-               'M_water' =  C_water_0[i]*V_water,'M_sed' = 0)
+    inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
+               'M_sed'=0)
     
     # Water is renewed during depuration after each sampling point
     refresh_moments <- rep(24,6) +c(0, 6, 12, 24, 48, 72)
-    eventdat <- data.frame(var = c("M_water"),
+    eventdat <- data.frame(var = c("C_water"),
                            time = c(refresh_moments) ,
                            value = rep(0, length(refresh_moments)),
                            method = rep("rep", (length(refresh_moments)))) 
@@ -294,7 +327,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
     
     geom_point(data = exp_data, aes(x=Time, y=C1, color=strings[1]), size=5)+
     geom_point(data = exp_data, aes(x=Time, y=C2, color=strings[2]), size=5)+
-    #scale_y_log10()+
+    scale_y_log10()+
     
     
     labs(title = nm_type,
@@ -331,7 +364,7 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
               "ftol_rel" = 1e-07,
               "ftol_abs" = 0.0,
               "xtol_abs" = 0.0 ,
-              "maxeval" = 1000,
+              "maxeval" = 4000,
               "print_level" = 1)
 
 optimization <- nloptr::nloptr(x0 = x0,
@@ -351,7 +384,7 @@ fit_pars <- optimization$solution
 
 alpha <-fit_pars[1]
 ke_2 <- fit_pars[2]
-
+  
 plot_func(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, 
           age = age, ksed_predicted)
 

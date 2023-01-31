@@ -70,7 +70,7 @@ weight_calc <- function(age, directory){
 
 # The daphnias used in water exposure experiments are between 7 and 14 days old
 # We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(14, dir_uptake) # mg dry weight of individual daphnia 
+dry_weight <- weight_calc(12, dir_uptake) # mg dry weight of individual daphnia 
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
@@ -179,13 +179,13 @@ ode_func <- function(time, inits, params){
       N_current <- N[6]
     }else if (30 <= time & time < 36){
       N_current <- N[7]
-    }else if (36 <= time & time ){
+    }else if (36 <= time ){
       N_current <- N[8]
     }
     
     # C_water: TiO2 concentration in water
     dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water-
-                    k_sed*C_water + N_current*ke_2*C_daphnia*dry_weight
+                    k_sed*C_water
     
     # Daphnia magna
     dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
@@ -203,7 +203,7 @@ ode_func <- function(time, inits, params){
     M_water <- C_water*V_water
     
     # Mass balance of TiO2 (should always be the total mass of the system)
-    Mass_balance = M_daphnia_tot + M_water + M_sed #+ M_Daphnia_excreted
+    Mass_balance = M_daphnia_tot + M_water + M_sed + M_Daphnia_excreted
     
     return(list(c(dC_water, dC_daphnia, dM_Daphnia_excreted, dM_sed),
                 "M_daphnia_tot"=M_daphnia_tot,
@@ -385,7 +385,7 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
 set.seed(1515)
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(rep(0,10), rep(0.10,5)),
+                               lb	= c(rep(0,10), c(0.17,0.16,0.16,0.16,0.12)),
                                ub = c(rep(4,5), rep(1,5), rep(0.4,5)),
                                opts = opts,
                                C_water_0 = C_water_0,
@@ -408,3 +408,5 @@ results_plots <- plot_func(optimization, C_water_0, nm_types,
                            F_rate = F_rate, 
                            dry_weight=dry_weight,
                            ksed_predicted=ksed_predicted)
+
+results_plots
