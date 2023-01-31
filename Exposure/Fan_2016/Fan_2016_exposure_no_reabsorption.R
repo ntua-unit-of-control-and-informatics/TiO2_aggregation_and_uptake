@@ -221,7 +221,7 @@ ode_func <- function(time, inits, params){
     N_current <- 10
     
     # C_water: TiO2 concentration in water
-    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water
+    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water + M_Daphnia_excreted/V_water
     
     # Daphnia magna
     dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
@@ -239,7 +239,7 @@ ode_func <- function(time, inits, params){
     M_water <- C_water*V_water
     
     # Mass balance of TiO2 (should always be the total mass of the system)
-    Mass_balance = M_daphnia_tot + M_water + M_sed + M_Daphnia_excreted
+    Mass_balance = M_daphnia_tot + M_water + M_sed #+ M_Daphnia_excreted
     
     return(list(c(dC_water, dC_daphnia, dM_Daphnia_excreted, dM_sed),
                 "M_daphnia_tot"=M_daphnia_tot,
@@ -419,12 +419,12 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
               "ftol_rel" = 1e-07,
               "ftol_abs" = 0.0,
               "xtol_abs" = 0.0 ,
-              "maxeval" = 3000,
+              "maxeval" = 2000,
               "print_level" = 1)
 
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(rep(0,12), rep(0.10,6)),
+                               lb	= c(rep(0,12), 1.01*C3_data[C3_data$Time==2,2:7]),
                                ub = c(rep(4,6), rep(1,6), rep(0.4,6)),
                                opts = opts,
                                C_water_0 = C_water_0,
