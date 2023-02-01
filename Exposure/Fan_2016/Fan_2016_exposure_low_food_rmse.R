@@ -104,27 +104,61 @@ C2_data <- rbind(C2_uptake_data, C2_depuration_data)
 C3_data <- rbind(C3_uptake_data, C3_depuration_data)
 
 
-weight_calc <- function(age, directory){
-  setwd(directory)
-  df <- read.csv('Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
-  df[,1] <- round(df[,1])
+# Betini et al. (2019)
+#input: age [days], temperature [oC], food["low"/"high"]
+size_estimation_mm <- function(age, temperature, food){
   
-  age_span <- df[,1]
-  weight_span <- df[,2]
+  # T = 15 o C
+  a_low_15 <-0.354
+  b_low_15 <- 0.527
+  a_high_15 <- 0.105
+  b_high_15 <- 0.953
   
-  if(age <= min(age_span)){
-    dry_weight <- min(weight_span)
-  }else if(age >= max(age_span)){  #Change here
-    dry_weight <- max(weight_span)
-  }else{ 
-    dry_weight <- approx(df[,1], df[,2], age)  #Change here
+  # T = 25 o C
+  a_low_25 <- 0.811
+  b_low_25 <- 0.355
+  a_high_25 <- 0.698
+  b_high_25 <- 0.83
+  
+  if(food == "low"){
+    if(temperature <= 15){
+      a <- a_low_15
+      b <- b_low_15
+    }else if(temperature >= 25){  
+      a <- a_low_25
+      b <- b_low_25
+    }else{ 
+      a <- approx(c(15,25), c(a_low_15, a_low_25), temperature)$y
+      b <- approx(c(15,25), c(b_low_15, b_low_25), temperature)$y
+    }
+  }else if (food == "high"){
+    if(temperature <= 15){
+      a <- a_high_15
+      b <- b_high_15
+    }else if(temperature >= 25){  
+      a <- a_high_25
+      b <- b_high_25
+    }else{ 
+      a <- approx(c(15,25), c(a_high_15, a_high_25), temperature)$y
+      b <- approx(c(15,25), c(b_high_15, b_high_25), temperature)$y
+    }
+  }else{
+    stop('food must be either "low" or "high" ')
   }
-  return(dry_weight$y)
+  return(a + b * log(age))
 }
 
-# The daphnias used in water exposure experiments are between 7 and 14 days old
-# We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(14, dir_uptake) # mg dry weight of individual daphnia 
+age <- 14 #days
+temperature = 22 #oC
+food = "low" #low/high
+L = size_estimation_mm(age,temperature,food) #mm
+#Units L:mm, w: mg
+# Dumont et al. (1975)
+w1 = (1.89e-06*(L*1000)^2.25)/1000 #mg
+w2 = (4.88e-05*(L*1000)^1.80)/1000
+# Pauw et al. (1981)
+w3 = 0.01*(L)^2.62
+dry_weight = mean(c(w1,w2,w3))
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
@@ -221,7 +255,7 @@ ode_func <- function(time, inits, params){
     N_current <- 10
     
     # C_water: TiO2 concentration in water
-    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water + M_Daphnia_excreted/V_water
+    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water 
     
     # Daphnia magna
     dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
@@ -271,7 +305,7 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
     C_sat <- sub_C_sat[j]    
     
     sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
-
+    
     score_per_conc <- c()
     ksed_nm_type <- substr(nm_type, nchar(nm_type) - 2 + 1, nchar(nm_type)) # Extract last 2 characters
     
@@ -409,7 +443,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
 
 
 ############################################################################
- 
+
 nm_types <- as.character(Mapping[,2])
 x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6))
 C_water_0 <- c(0.1, 1, 10) # mg/L
@@ -424,7 +458,7 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
 
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= as.numeric(c(rep(0,12), 1.2*C3_data[C3_data$Time==2,2:7])),
+                               lb	= c(rep(0,12), as.numeric(1.2*C3_data[C3_data$Time==2,2:7])),
                                ub = c(rep(1,6), rep(1,6), rep(0.4,6)),
                                opts = opts,
                                C_water_0 = C_water_0,
