@@ -3,13 +3,7 @@
 # The second is about the trophic exposure to TiO2 exposured algae.
 
 # Working directory
-# dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
-# dir_uptake <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
-# dir_filtration <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
-
-dir_uptake <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
-dir_filtration <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
-dir <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
+dir = 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
 setwd(dir)
 
 #=================#
@@ -50,27 +44,6 @@ C3_data <- read.csv('data/10_water_exposure.csv')
 colnames(C3_data)[-1] <- Mapping$Type
 C3_data[,2:6] <-  C3_data[,2:6]/1e06 # transform from mg/kg daphnia to mg/mg daphnia
 
-weight_calc <- function(age, directory){
-  setwd(directory)
-  df <- read.csv('Daphnia Magna Dry Weight - Age/weight_growth_data_Pauw_1981.csv')
-  df[,1] <- round(df[,1])
-  
-  age_span <- df[,1]
-  weight_span <- df[,2]
-  
-  if(age <= min(age_span)){
-    dry_weight <- min(weight_span)
-  }else if(age >= max(age_span)){  #Change here
-    dry_weight <- max(weight_span)
-  }else{ 
-    dry_weight <- approx(df[,1], df[,2], age)  #Change here
-  }
-  return(dry_weight$y)
-}
-
-# The daphnias used in water exposure experiments are between 7 and 14 days old
-# We consider an average age f the daphnias equal to 10 days (Pauw et al.1981)
-dry_weight <- weight_calc(9, dir_uptake) # mg dry weight of individual daphnia 
 
 # V_water is the volume of water (in L) in the corresponding experiment.
 # The volume remains constant during the experiment and equal to 100 ml
@@ -80,50 +53,77 @@ V_water <- 0.1 # L
 # At each measurement 10 daphnias were removed from the system
 N <- seq(80,10,-10)
 
-# Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
-Filtration_rate_func <- function(temperature, dry_mass, directory, dry_mass_threshold=0.034){
-  setwd(directory)
-  # UNITS
-  # temperature: C
-  # dry_mass: mg 
-  # F_rate: ml/h/mg dry daphnia
+Size_estimation <- function(age, temperature, food){
   
-  # dry_mass_threshold is the threshold to decide if a daphnia organism should be
-  # considered as juvenile or adult. According to Burns et al.1969. Daphnia 
-  # organisms with length lower than(approximately) 1.5 mm are considered as juveniles.
-  # Based on the given equation that relates the dry mass to the length of the 
-  # organism in the same paper ( W (mg) = 0.0116*L^2.67 ), the dry mass 
-  # of a daphnia with length 1.5 mm has dry mass equal to 0.034mg. So daphnia 
-  # organism with dry mass greater than this threshold must be considered as adults
-  # for the calculation of F_rate.
+  # T = 15 o C
+  a_low_15 <-0.354
+  b_low_15 <- 0.527
+  a_high_15 <- 0.105
+  b_high_15 <- 0.953
   
-  # Keep ony the data for immature or adult daphnia based on the 
-  # age and adulthood_threshold given.
+  # T = 25 o C
+  a_low_25 <- 0.811
+  b_low_25 <- 0.355
+  a_high_25 <- 0.698
+  b_high_25 <- 0.83
   
-  filtration_data <- read.csv('Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
-  
-  if (dry_mass <= dry_mass_threshold){
-    df <- filtration_data[,1:2]
-  } else{
-    df <- filtration_data[,c(1,3)]
-  }
-  #Interpolation
-  #Set the boundaries about the temperature
-  if(temperature <= min(df$Temperature)){
-    F_rate <- df[which.min(df$Temperature), 2]
-  }else if(temperature >= max(df$Temperature)){
-    F_rate <- df[which.max(df$Temperature), 2]
+  if(food == "low"){
+    if(temperature <= 15){
+      a <- a_low_15
+      b <- b_low_15
+    }else if(temperature >= 25){  
+      a <- a_low_25
+      b <- b_low_25
+    }else{ 
+      a <- approx(c(15,25), c(a_low_15, a_low_25), temperature)$y
+      b <- approx(c(15,25), c(b_low_15, b_low_25), temperature)$y
+    }
+  }else if (food == "high"){
+    if(temperature <= 15){
+      a <- a_high_15
+      b <- b_high_15
+    }else if(temperature >= 25){  
+      a <- a_high_25
+      b <- b_high_25
+    }else{ 
+      a <- approx(c(15,25), c(a_high_15, a_high_25), temperature)$y
+      b <- approx(c(15,25), c(b_high_15, b_high_25), temperature)$y
+    }
   }else{
-    F_rate <- approx(df[,1], df[,2], temperature)
+    stop('food must be either "low" or "high" ')
   }
-  return(F_rate$y)
+  return(a + b * log(age))
 }
-# Units of filtration rate are ml water/h/mg dry weight of daphnia
-F_rate <- Filtration_rate_func(22, dry_weight,dir_filtration)
-# Multiply with the average dry weight (transformed into mg) of an individual.
-F_rate <- F_rate*dry_weight
 
-setwd(dir)
+# Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
+# Input: length [mm], temperature [oC]/ Output: filtration rate[mL/h]
+Filtration_rate_estimation <- function(length, temperature){
+  
+  F_rate_15 <- 0.153 * length^2.16
+  F_rate_20 <- 0.208 * length^2.80
+  F_rate_25 <- 0.202 * length^2.38
+  
+  if(temperature <= 15){
+    F_rate <- F_rate_15
+  }else if(temperature >= 25){  
+    F_rate <- F_rate_25
+  }else{ 
+    F_rate <- approx(c(15,20,25), c(F_rate_15, F_rate_20, F_rate_25), temperature)$y
+  }
+  return(F_rate)
+}
+
+age <- 10 #days
+temperature = 22 #oC
+food = "high" #low/high
+L = Size_estimation(age,temperature,food) #mm
+#Units L:mm, w: mg
+# Dumont et al. (1975)
+w1 = (1.89e-06*(L*1000)^2.25)/1000 #mg
+w2 = (4.88e-05*(L*1000)^1.80)/1000
+dry_weight =  mean(c(w1,w2))
+F_rate <- Filtration_rate_estimation(L,22)#mL/h
+
 # Load the predicted ksed values
 ksed_predicted <- read.csv("Chen_2019_ksed_predictions.csv")
 ksed_predicted <- ksed_predicted[, c(1,4,6)]
@@ -145,6 +145,74 @@ mape <- function(observed, predicted){
 
 rmse <- function(observed, predicted){
   sqrt(mean((observed-predicted)^2)) 
+}
+
+AAFE <- function(predictions, observations, times=NULL){
+  y_obs <- unlist(observations)
+  y_pred <- unlist(predictions)
+  # Total number of observations
+  N<- length(y_obs)
+  log_ratio <- rep(NA, N) 
+  for ( i in 1:N){
+    log_ratio[i] <- abs(log((y_pred[i]/y_obs[i]), base = 10))
+  }
+  aafe <- 10^(sum(log_ratio)/N) 
+  return(aafe)
+}
+
+PBKOF <- function(observed, predicted, comp.names =NULL){
+  # Check if the user provided the correct input format
+  if (!is.list(observed) || !is.list(predicted)){
+    stop(" The observations and predictions must be lists")
+  }
+  # Check if the user provided equal length lists
+  if (length(observed) != length(predicted)){
+    stop(" The observations and predictions must have the same compartments")
+  }
+  Ncomp <- length(observed) # Number of compartments
+  I <- rep(NA, Ncomp) # Compartment discrepancy index
+  N_obs <- rep(NA, Ncomp) #Number of observations per compartment
+  #loop over the compartments
+  for (i in 1:Ncomp){
+    Et <- 0 #relative error with observations
+    St <- 0  #relative error with simulations
+    N <- length(observed[[i]]) # number of observations for compartment i
+    # Check if observations and predictions have equal length
+    if(N != length(predicted[[i]])){
+      stop(paste0("Compartment ",i," had different length in the observations and predictions"))
+    }
+    N_obs[i] <- N # populate the N_obs vector
+    for (j in 1:N){
+      # sum of relative squared errors (error = observed - predicted)
+      Et <- Et + ( abs(observed[[i]][j] - predicted[[i]][j])  / observed[[i]][j] )  ^2
+      St <- St + ( abs(observed[[i]][j] - predicted[[i]][j])  / predicted[[i]][j] )  ^2
+    }
+    
+    # root mean of the square of observed values
+    RMEt <- sqrt(Et/N)
+    # root mean of the square of simulated values
+    RMSt <- sqrt( St/N)
+    
+    I[i] <- (RMEt + RMSt)/2   
+  }
+  # Total number of observations
+  Ntot <- sum(N_obs)
+  # Initialise the consolidated discrepancy index
+  Ic <-0
+  for (i in 1:Ncomp){
+    # Give weight to compartments with more observations (more information)
+    Ic <- Ic +  I[i]* N_obs[i]/Ntot
+  }
+  # Name the list of compartment discrepancy indices
+  if ( !is.null(comp.names)){
+    names(I) <- comp.names
+  }else if (!is.null(names(observed))){
+    names(I) <- names(observed)
+  } else if (!is.null(names(predicted)) && is.null(comp.names) ){
+    names(I) <- names(predicted)
+  }
+  return(Ic)
+  #return(list(Total_index = Ic, Compartment_index= I))
 }
 
 #=====================================#
@@ -182,6 +250,7 @@ ode_func <- function(time, inits, params){
     }else if (36 <= time ){
       N_current <- N[8]
     }
+    #k_sed <- 0
     
     # C_water: TiO2 concentration in water
     dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water-
@@ -264,7 +333,7 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
         stop(print("Length of predictions is not equal to the length of data"))
       }
       
-      score_per_conc[i] <- rmse(exp_data[,i+1], results)
+      score_per_conc[i] <- AAFE(exp_data[,i+1], results)
       
     }
     
@@ -380,12 +449,12 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
               "ftol_rel" = 1e-07,
               "ftol_abs" = 0.0,
               "xtol_abs" = 0.0 ,
-              "maxeval" = 4000,
+              "maxeval" = 1000,
               "print_level" = 1)
 set.seed(1515)
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(rep(0,10), c(0.17,0.16,0.16,0.16,0.12)),
+                               lb	= c(rep(0,10), c( 0.165, 0.148,0.143,0.150,0.112)),
                                ub = c(rep(4,5), rep(1,5), rep(0.4,5)),
                                opts = opts,
                                C_water_0 = C_water_0,
