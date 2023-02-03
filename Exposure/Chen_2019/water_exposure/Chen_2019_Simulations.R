@@ -1,4 +1,8 @@
-simulation_func <- function(sedimentation, score, N_iter){
+simulation_func <- function(input_string){
+  splitted_input <- strsplit(input_string, split = ' ')
+  sedimentation <-  unlist(splitted_input)[1]
+  score <-  unlist(splitted_input)[2]
+  N_iter <-  unlist(splitted_input)[3]
   
   # This is a script to simulate the experiments in Cehn et al., 2019
   # The first experiment is about the waterborne exposure of D. Magna to TiO2 nanoparticles
@@ -511,15 +515,37 @@ simulation_func <- function(sedimentation, score, N_iter){
                                'Dry_weight_(mg)'=dry_weight,
                                'Filtration_rate_(ml/h)'=F_rate)
   
-  results_plots <- plot_func(optimization, C_water_0, nm_types,
-                             V_water = V_water,
-                             ksed_predicted=ksed_predicted,
-                             sedimentation = sedimentation)
-  
+  # results_plots <- plot_func(optimization, C_water_0, nm_types,
+  #                            V_water = V_water,
+  #                            ksed_predicted=ksed_predicted,
+  #                            sedimentation = sedimentation)
+  # 
   return(list('input'=input,
               'best_score'=optimization$objective,
-              'physiological_params'=physiological_params,
-              'plots'=results_plots))
+              'physiological_params'=physiological_params
+              #'plots'=results_plots
+              ))
 }
+#############################################
 
-simulation_func(sedimentation=T, score='rmse', N_iter=25)
+
+Initialization_ls <- list("T rmse 15",
+                          "T AAFE 15",
+                          "T PBKOF 15", 
+                          "F rmse 15",
+                          "F AAFE 15",
+                          "F PBKOF 15")
+
+library(parallel)
+start_time <- Sys.time()
+numCores <- detectCores()
+cl <- makeCluster(numCores-2)
+s.time <- Sys.time()
+paste0("The process started at ", s.time, ".")
+output <- parLapply(cl, Initialization_ls, simulation_func)
+f.time <- Sys.time()
+Total_duration <-  f.time - s.time
+paste0("The process finished at ", f.time, ".")
+paste0("Total duration of optimization: ", Total_duration)
+stopCluster(cl)
+########################################

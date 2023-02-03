@@ -106,6 +106,16 @@ for (i in 1:length(C_2h_C1)) { # loop for every TiO2 type
 # replace the C1_uptake concentrations at 2 hours with the corrected values
 C1_uptake[4,2:9] <- C_2h_corrected
 
+# Calculate the actual cooncentrations at the depuration phase
+C1_depuration <- C1_depuration[-1,] # remove the data at the beginning of the depuration 
+#because the are already included in uptake data
+C1_depuration$Time <- C1_depuration$Time + 2
+for (j in 2:dim(C1_depuration)[2]) {
+  C1_depuration[,j] <- C_2h_corrected[j-1]*C1_depuration[,j]/100 
+}
+# Total data for C1 exposure experiment
+C1_data <- rbind(C1_uptake, C1_depuration)
+C1_data$Time <- c(0.33, 0.67, 1, 2, 5, 8, 14, 26, 50)
 
 # C2_uptake: correct the values at 2 hours
 C_2h_corrected <- c()
@@ -114,3 +124,14 @@ for (i in 1:length(C_2h_C2)) { # loop for every TiO2 type
 }
 # replace the C1_uptake concentrations at 2 hours with the corrected values
 C2_uptake[4,2:9] <- C_2h_corrected
+
+# Calculate the actual cooncentrations at the depuration phase
+C2_depuration <- C2_depuration[-1,] # remove the data at the beginning of the depuration 
+#because the are already included in uptake data
+C2_depuration$Time <- C2_depuration$Time + 2
+for (j in 2:dim(C2_depuration)[2]) {
+  C2_depuration[,j] <- C_2h_corrected[j-1]*C2_depuration[,j]/100 
+}
+# Total data for C1 exposure experiment
+C2_data <- rbind(C2_uptake, C2_depuration)
+C2_data$Time <- c(0.33, 0.67, 1, 2, 5, 8, 14, 26, 50)
