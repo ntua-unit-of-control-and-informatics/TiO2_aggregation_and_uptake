@@ -5,8 +5,85 @@
 # Working directory
 dir = 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Chen_2019/water_exposure'
 setwd(dir)
+# Function for estimating length of D. magna based on age (from Betini et al. (2019))
+# Input: age [days], temperature [oC], food["low"/"high"]/ Output: length [mm]
+# Considers female D. magna
+Size_estimation <<- function(age, Temperature = 22, food="high"){
+  
+  # T = 15 o C
+  a_low_15 <-0.354
+  b_low_15 <- 0.527
+  a_high_15 <- 0.105
+  b_high_15 <- 0.953
+  
+  # T = 25 o C
+  a_low_25 <- 0.811
+  b_low_25 <- 0.355
+  a_high_25 <- 0.698
+  b_high_25 <- 0.83
+  
+  if(food == "low"){
+    if(temperature <= 15){
+      a <- a_low_15
+      b <- b_low_15
+    }else if(temperature >= 25){  
+      a <- a_low_25
+      b <- b_low_25
+    }else{ 
+      a <- approx(c(15,25), c(a_low_15, a_low_25), temperature)$y
+      b <- approx(c(15,25), c(b_low_15, b_low_25), temperature)$y
+    }
+  }else if (food == "high"){
+    if(temperature <= 15){
+      a <- a_high_15
+      b <- b_high_15
+    }else if(temperature >= 25){  
+      a <- a_high_25
+      b <- b_high_25
+    }else{ 
+      a <- approx(c(15,25), c(a_high_15, a_high_25), temperature)$y
+      b <- approx(c(15,25), c(b_high_15, b_high_25), temperature)$y
+    }
+  }else{
+    stop('food must be either "low" or "high" ')
+  }
+  return(a + b * log(age))
+}
 
-#=================#
+
+Filtration_rate_estimation <<- function(Length, Temperature = 22, method = "Preuss"){
+  if(method == "Burns"){
+    # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
+    # Input: Length [mm],Ttemperature [oC]/ Output: filtration rate[mL/h]
+    F_rate_15 <- 0.153 * Length^2.16
+    F_rate_20 <- 0.208 * Length^2.80
+    F_rate_25 <- 0.202 * Length^2.38
+    
+    if(Temperature <= 15){
+      F_rate <- F_rate_15
+    }else if(Temperature >= 25){  
+      F_rate <- F_rate_25
+    }else{ 
+      F_rate <- approx(c(15,20,25), c(F_rate_15, F_rate_20, F_rate_25), Temperature)$y
+    }
+  }else if(method == "Preuss"){
+    F_rate <- 0.5*Length^2.45
+  }else{
+    stop("Please select a valid estimation method; either 'Burns' or 'Preuss' ")
+  }
+  return(F_rate)
+}
+
+# Dumont et al. (1975)
+# Input: length [mm]/ Output: dry weight[mg]
+dry_weight_estimation <<- function(L){
+  
+  w1 = (1.89e-06*(L*1000)^2.25)/1000 #Donka Lake
+  w2 = (4.88e-05*(L*1000)^1.80)/1000 #River Sambre
+  # Selected w1 after validation with Martin-Creuzburg et al. (2018
+  return(w1)
+}
+#=================#s
 #  Water exposure #
 #=================#
 
@@ -53,76 +130,7 @@ V_water <- 0.1 # L
 # At each measurement 10 daphnias were removed from the system
 N <- seq(80,10,-10)
 
-Size_estimation <- function(age, temperature, food){
-  
-  # T = 15 o C
-  a_low_15 <-0.354
-  b_low_15 <- 0.527
-  a_high_15 <- 0.105
-  b_high_15 <- 0.953
-  
-  # T = 25 o C
-  a_low_25 <- 0.811
-  b_low_25 <- 0.355
-  a_high_25 <- 0.698
-  b_high_25 <- 0.83
-  
-  if(food == "low"){
-    if(temperature <= 15){
-      a <- a_low_15
-      b <- b_low_15
-    }else if(temperature >= 25){  
-      a <- a_low_25
-      b <- b_low_25
-    }else{ 
-      a <- approx(c(15,25), c(a_low_15, a_low_25), temperature)$y
-      b <- approx(c(15,25), c(b_low_15, b_low_25), temperature)$y
-    }
-  }else if (food == "high"){
-    if(temperature <= 15){
-      a <- a_high_15
-      b <- b_high_15
-    }else if(temperature >= 25){  
-      a <- a_high_25
-      b <- b_high_25
-    }else{ 
-      a <- approx(c(15,25), c(a_high_15, a_high_25), temperature)$y
-      b <- approx(c(15,25), c(b_high_15, b_high_25), temperature)$y
-    }
-  }else{
-    stop('food must be either "low" or "high" ')
-  }
-  return(a + b * log(age))
-}
 
-# Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
-# Input: length [mm], temperature [oC]/ Output: filtration rate[mL/h]
-Filtration_rate_estimation <- function(length, temperature){
-  
-  F_rate_15 <- 0.153 * length^2.16
-  F_rate_20 <- 0.208 * length^2.80
-  F_rate_25 <- 0.202 * length^2.38
-  
-  if(temperature <= 15){
-    F_rate <- F_rate_15
-  }else if(temperature >= 25){  
-    F_rate <- F_rate_25
-  }else{ 
-    F_rate <- approx(c(15,20,25), c(F_rate_15, F_rate_20, F_rate_25), temperature)$y
-  }
-  return(F_rate)
-}
-
-age <- 10 #days
-temperature = 22 #oC
-food = "high" #low/high
-L = Size_estimation(age,temperature,food) #mm
-#Units L:mm, w: mg
-# Dumont et al. (1975)
-w1 = (1.89e-06*(L*1000)^2.25)/1000 #mg
-w2 = (4.88e-05*(L*1000)^1.80)/1000
-dry_weight =  mean(c(w1,w2))
-F_rate <- Filtration_rate_estimation(L,22)#mL/h
 
 # Load the predicted ksed values
 ksed_predicted <- read.csv("Chen_2019_ksed_predictions.csv")
@@ -251,13 +259,12 @@ ode_func <- function(time, inits, params){
       N_current <- N[8]
     }
     #k_sed <- 0
-    
     # C_water: TiO2 concentration in water
-    dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water-
+    dC_water <- -(N_current*a*(F_rate/1000)*((1-C_daphnia/C_sat)^beta)*C_water)/V_water-
                     k_sed*C_water
     
     # Daphnia magna
-    dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
+    dC_daphnia = a*(F_rate/1000)*((1-C_daphnia/C_sat)^beta)*C_water/dry_weight - ke_2*C_daphnia 
     
     # Excreted from each D.magna
     dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight  
@@ -284,10 +291,15 @@ ode_func <- function(time, inits, params){
 }
 
 # obj_func needs the x vector (2 values) and the nm_type
-obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted){
+obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted){
   
   score_per_type <- c()
   
+  age <- x[16]#days
+  L = Size_estimation(age) #mm
+  dry_weight =  dry_weight_estimation(L) #mg
+  F_rate <- Filtration_rate_estimation(L)#mL/h
+  beta <- x[17]
   for (j in 1:length(nm_types)) {
     nm_type <- nm_types[j]
     
@@ -300,16 +312,17 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
     ke_2 <- sub_k[j] 
     sub_C_sat <- x[11:15]
     C_sat <- sub_C_sat[j]
-    
+
     sol_times <- seq(0,50, 0.5)
     
     score_per_conc <- c()
-    
+
     for (i in 1:3) { #loop for the 3 different concentrations
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"])
-      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat)
+      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "beta" = beta)
       params <- c(fitted_params, constant_params)
+
       
       inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
                  'M_sed'=0)
@@ -333,8 +346,9 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
         stop(print("Length of predictions is not equal to the length of data"))
       }
       
-      score_per_conc[i] <- AAFE(exp_data[,i+1], results)
-      
+      #score_per_conc[i] <- AAFE(exp_data[,i+1], results)
+      score_per_conc[i] <- PBKOF(list(exp_data[,i+1]), list(results))
+    
     }
     
     score_per_type[j] <- mean(score_per_conc)
@@ -345,23 +359,29 @@ obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_p
 }
 
 
-plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted){
+plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted){
   
   library(ggplot2)
   x <- optimization$solution
   plots_list <- list()
+  
+  age <- x[16]#days
+  L = Size_estimation(age) #mm
+  dry_weight =  dry_weight_estimation(L) #mg
+  F_rate <- Filtration_rate_estimation(L)#mL/h
+  beta <- x[17]
   for (j in 1:length(nm_types)) {
     nm_type <- nm_types[j]
     #plots
     exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
     colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
-    
     sub_a <- x[1:5]
     a <- sub_a[j] 
     sub_k <- x[6:10]
     ke_2 <- sub_k[j] 
     sub_C_sat <- x[11:15]
     C_sat <- sub_C_sat[j]    
+    
     sol_times <- seq(0,50, 0.5)
     
     keep_predictions <- data.frame(matrix(NA, nrow = length(sol_times), ncol = 4))
@@ -371,7 +391,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
     for (i in 1:3) { #loop for the 3 different concentrations
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"])
-      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat)
+      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "beta" = beta)
       
       params <- c(fitted_params, constant_params)
       
@@ -441,7 +461,7 @@ plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_we
 ################################################################################
 nm_types <- as.character(Mapping[,2])
 
-x0 <- c(rep(1,5), rep(0.001, 5), rep(0.2,5))
+x0 <- c(rep(1,5), rep(0.001, 5), rep(0.2,5), 9, 3)
 C_water_0 <- c(0.1, 1, 10) # mg/L
 
 opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
@@ -454,26 +474,24 @@ opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
 set.seed(1515)
 optimization <- nloptr::nloptr(x0 = x0,
                                eval_f = obj_func,
-                               lb	= c(rep(0,10), c( 0.165, 0.148,0.143,0.150,0.112)),
-                               ub = c(rep(4,5), rep(1,5), rep(0.4,5)),
+                               lb	= c(rep(0,10),  rep(0.15,5),7,1),
+                               ub = c(rep(4,5), rep(0.2,5), rep(0.7,5),14,5),
                                opts = opts,
                                C_water_0 = C_water_0,
                                nm_types = nm_types,
                                V_water = V_water,
-                               F_rate = F_rate, 
-                               dry_weight=dry_weight,
                                ksed_predicted=ksed_predicted)
-
 
 
 fitted_params <- optimization$solution
 
-params_values <- data.frame(matrix(fitted_params, nrow = 3, byrow = T)) 
+params_values <- data.frame(matrix(fitted_params[1:15], nrow = 3, byrow = T)) 
 colnames(params_values) <- nm_types
 rownames(params_values) <- c('a', 'ke_2', 'C_sat')
+age <- fitted_params[16]
+beta <- fitted_params[17]
 
 results_plots <- plot_func(optimization, C_water_0, nm_types,
                            V_water = V_water,
-                           F_rate = F_rate, 
-                           dry_weight=dry_weight,
                            ksed_predicted=ksed_predicted)
+results_plots
