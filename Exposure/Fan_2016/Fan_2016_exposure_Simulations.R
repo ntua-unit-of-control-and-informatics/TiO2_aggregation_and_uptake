@@ -1,5 +1,9 @@
-simulation_function <- function(age, sedimentation, food_quantity, score, t_lag, N_iter){
-  
+simulation_func <- function(input_string){
+  splitted_input <- strsplit(input_string, split = ' ')
+  sedimentation <-  unlist(splitted_input)[1]
+  score <-  unlist(splitted_input)[2]
+  method <-  unlist(splitted_input)[3]
+  N_iter <-  20#unlist(splitted_input)[4]
   
   # This is a script to simulate the experiments in Fan et al., 2016
   # The first experiment is about the waterborne exposure of D. Magna to TiO2 nanoparticles
@@ -7,6 +11,7 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   
   # Working directory
   dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2016'
+  setwd(dir)
   dir_uptake <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
   dir_filtration <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
   
@@ -109,7 +114,7 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   
   # Betini et al. (2019)
   #input: age [days], temperature [oC], food["low"/"high"]
-  size_estimation_mm <- function(age, temperature, food){
+  Size_estimation <<- function(age, temperature = 22, food="high"){
     
     # T = 15 o C
     a_low_15 <-0.354
@@ -151,22 +156,39 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
     return(a + b * log(age))
   }
   
-  age <- age #days
-  temperature = 22 #oC
-  
-  if(!(food_quantity %in% c("low", "high"))){
-    stop("food_quantity must be either high or low")
+  Filtration_rate_estimation <<- function(Length, Temperature = 22, method = "Preuss"){
+    
+    if(method == "Burns"){
+      # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
+      # Input: Length [mm],Ttemperature [oC]/ Output: filtration rate[mL/h]
+      F_rate_15 <- 0.153 * Length^2.16
+      F_rate_20 <- 0.208 * Length^2.80
+      F_rate_25 <- 0.202 * Length^2.38
+      
+      if(Temperature <= 15){
+        F_rate <- F_rate_15
+      }else if(Temperature >= 25){  
+        F_rate <- F_rate_25
+      }else{ 
+        F_rate <- approx(c(15,20,25), c(F_rate_15, F_rate_20, F_rate_25), Temperature)$y
+      }
+    }else if(method == "Preuss"){
+      F_rate <- 0.5*Length^2.45
+    }else{
+      stop("Please select a valid estimation method; either 'Burns' or 'Preuss' ")
+    }
+    return(F_rate)
   }
   
-  food = food_quantity #low/high
-  L = size_estimation_mm(age,temperature,food) #mm
-  #Units L:mm, w: mg
   # Dumont et al. (1975)
-  w1 = (1.89e-06*(L*1000)^2.25)/1000 #mg
-  w2 = (4.88e-05*(L*1000)^1.80)/1000
-  # Pauw et al. (1981)
-  w3 = 0.01*(L)^2.62
-  dry_weight = mean(c(w1,w2,w3))
+  # Input: length [mm]/ Output: dry weight[mg]
+  dry_weight_estimation <<- function(L){
+    
+    w1 = (1.89e-06*(L*1000)^2.25)/1000 #Donka Lake
+    w2 = (4.88e-05*(L*1000)^1.80)/1000 #River Sambre
+    # Selected w1 after validation with Martin-Creuzburg et al. (2018
+    return(w1)
+  }
   
   # V_water is the volume of water (in L) in the corresponding experiment.
   # The volume remains constant during the experiment and equal to 100 ml
@@ -176,50 +198,6 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   # At each measurement 10 daphnias were removed from the system
   N <- 10
   
-  # Filtering rate of Daphnia magna is calculated based on Burns et al. 1969.
-  Filtration_rate_func <- function(temperature, dry_mass, directory, dry_mass_threshold=0.034){
-    setwd(directory)
-    # UNITS
-    # temperature: C
-    # dry_mass: mg 
-    # F_rate: ml/h/mg dry daphnia
-    
-    # dry_mass_threshold is the threshold to decide if a daphnia organism should be
-    # considered as juvenile or adult. According to Burns et al.1969. Daphnia 
-    # organisms with length lower than(approximately) 1.5 mm are considered as juveniles.
-    # Based on the given equation that relates the dry mass to the length of the 
-    # organism in the same paper ( W (mg) = 0.0116*L^2.67 ), the dry mass 
-    # of a daphnia with length 1.5 mm has dry mass equal to 0.034mg. So daphnia 
-    # organism with dry mass greater than this threshold must be considered as adults
-    # for the calculation of F_rate.
-    
-    # Keep ony the data for immature or adult daphnia based on the 
-    # age and adulthood_threshold given.
-    
-    filtration_data <- read.csv('Daphnia Magna Filtration Rate/Burns et al.1969 filtration rate data.csv')
-    
-    if (dry_mass <= dry_mass_threshold){
-      df <- filtration_data[,1:2]
-    } else{
-      df <- filtration_data[,c(1,3)]
-    }
-    #Interpolation
-    #Set the boundaries about the temperature
-    if(temperature <= min(df$Temperature)){
-      F_rate <- df[which.min(df$Temperature), 2]
-    }else if(temperature >= max(df$Temperature)){
-      F_rate <- df[which.max(df$Temperature), 2]
-    }else{
-      F_rate <- approx(df[,1], df[,2], temperature)
-    }
-    return(F_rate$y)
-  }
-  # Units of filtration rate are ml water/h/mg dry weight of daphnia
-  F_rate <- Filtration_rate_func(22, dry_weight,dir_filtration)
-  # Multiply with the average dry weight (transformed into mg) of an individual.
-  F_rate <- F_rate*dry_weight
-  
-
   # Load the predicted ksed values
   setwd(dir)
   ksed_predicted <- read.csv("data/Fan_2016_ksed_predictions.csv")
@@ -229,25 +207,77 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   ##########################################################
   
   # *** metrics ***
-  if(score=="rmse"){
-    # set as metric the rmse
-    score_func <- function(observed, predicted){
-      sqrt(mean((observed-predicted)^2)) 
+  
+  rmse <- function(observed, predicted){
+    sqrt(mean((observed-predicted)^2)) 
+  }
+  
+  AAFE <- function(predictions, observations, times=NULL){
+    y_obs <- unlist(observations)
+    y_pred <- unlist(predictions)
+    # Total number of observations
+    N<- length(y_obs)
+    log_ratio <- rep(NA, N) 
+    for ( i in 1:N){
+      log_ratio[i] <- abs(log((y_pred[i]/y_obs[i]), base = 10))
     }
-  } else if (score=="AAFE"){
-      # set as metric the rmse
-      score_func <- function(observations, predictions,  times=NULL){
-      y_obs <- unlist(observations)
-      y_pred <- unlist(predictions)
-      # Total number of observations
-      N<- length(y_obs)
-      log_ratio <- rep(NA, N) 
-      for ( i in 1:N){
-        log_ratio[i] <- abs(log((y_pred[i]/y_obs[i]), base = 10))
+    aafe <- 10^(sum(log_ratio)/N) 
+    return(aafe)
+  }
+  
+  PBKOF <- function(observed, predicted, comp.names =NULL){
+    # Check if the user provided the correct input format
+    if (!is.list(observed) || !is.list(predicted)){
+      stop(" The observations and predictions must be lists")
+    }
+    # Check if the user provided equal length lists
+    if (length(observed) != length(predicted)){
+      stop(" The observations and predictions must have the same compartments")
+    }
+    Ncomp <- length(observed) # Number of compartments
+    I <- rep(NA, Ncomp) # Compartment discrepancy index
+    N_obs <- rep(NA, Ncomp) #Number of observations per compartment
+    #loop over the compartments
+    for (i in 1:Ncomp){
+      Et <- 0 #relative error with observations
+      St <- 0  #relative error with simulations
+      N <- length(observed[[i]]) # number of observations for compartment i
+      # Check if observations and predictions have equal length
+      if(N != length(predicted[[i]])){
+        stop(paste0("Compartment ",i," had different length in the observations and predictions"))
       }
-      aafe <- 10^(sum(log_ratio)/N) 
-      return(aafe)
+      N_obs[i] <- N # populate the N_obs vector
+      for (j in 1:N){
+        # sum of relative squared errors (error = observed - predicted)
+        Et <- Et + ( abs(observed[[i]][j] - predicted[[i]][j])  / observed[[i]][j] )  ^2
+        St <- St + ( abs(observed[[i]][j] - predicted[[i]][j])  / predicted[[i]][j] )  ^2
+      }
+      
+      # root mean of the square of observed values
+      RMEt <- sqrt(Et/N)
+      # root mean of the square of simulated values
+      RMSt <- sqrt( St/N)
+      
+      I[i] <- (RMEt + RMSt)/2   
     }
+    # Total number of observations
+    Ntot <- sum(N_obs)
+    # Initialise the consolidated discrepancy index
+    Ic <-0
+    for (i in 1:Ncomp){
+      # Give weight to compartments with more observations (more information)
+      Ic <- Ic +  I[i]* N_obs[i]/Ntot
+    }
+    # Name the list of compartment discrepancy indices
+    if ( !is.null(comp.names)){
+      names(I) <- comp.names
+    }else if (!is.null(names(observed))){
+      names(I) <- names(observed)
+    } else if (!is.null(names(predicted)) && is.null(comp.names) ){
+      names(I) <- names(predicted)
+    }
+    return(Ic)
+    #return(list(Total_index = Ic, Compartment_index= I))
   }
   
   #=====================================#
@@ -268,23 +298,24 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
       
       # Number of Daphnids per beaker
       N_current <- 10
+      # Fan et al. (2016) let the daphnids in SM7 medium for 3 hours
+      # prior to the experiment to empty their guts
+      time_d <- 3+time/24 #time in days
+      # Weight loss under starvation through exponential decay (Elen et al., 1989)
+      reduction <-ifelse(time_d<2, (1- 0.32*(1-exp(-36.6*time_d))), 
+                         (0.682 - 0.435 * (1- 16.79*exp(-1.41*time_d))))
+      dry_weight_current <- reduction * dry_weight
       
+      #k_sed <- 0
       # C_water: TiO2 concentration in water
-      dC_water <- -(N_current*a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water)/V_water - k_sed*C_water 
+      dC_water <- -(N_current*a*(F_rate/1000)*((1-C_daphnia/C_sat)^n)*C_water)/V_water-
+        k_sed*C_water
       
-      if(time < t_0){
-        # Daphnia magna
-        dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight  
-        
-        # Excreted from each D.magna
-        dM_Daphnia_excreted <-  0
-      } else{
-        # Daphnia magna
-        dC_daphnia = a*(F_rate/1000)*(1-C_daphnia/C_sat)*C_water/dry_weight - ke_2*C_daphnia 
-        
-        # Excreted from each D.magna
-        dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight    
-      }
+      # Daphnia magna
+      dC_daphnia = a*(F_rate/1000)*((1-C_daphnia/C_sat)^n)*C_water/dry_weight - ke_2*C_daphnia 
+      
+      # Excreted from each D.magna
+      dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight  
       
       # Mass in  Sediment
       dM_sed <- k_sed*C_water*V_water
@@ -296,7 +327,7 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
       M_water <- C_water*V_water
       
       # Mass balance of TiO2 (should always be the total mass of the system)
-      Mass_balance = M_daphnia_tot + M_water + M_sed #+ M_Daphnia_excreted
+      Mass_balance = M_daphnia_tot + M_water + M_sed + M_Daphnia_excreted
       
       return(list(c(dC_water, dC_daphnia, dM_Daphnia_excreted, dM_sed),
                   "M_daphnia_tot"=M_daphnia_tot,
@@ -309,9 +340,15 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   
   
   # obj_func function to minimize
-  obj_func <- function(x, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted, sedimentation, t_lag){
+  obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score){
     
     score_per_type <- c()
+    
+    age <- x[19]#days
+    L = Size_estimation(age) #mm
+    dry_weight =  dry_weight_estimation(L) #mg
+    F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
+    n <- x[20]
     
     for (j in 1:length(nm_types)) {
       nm_type <- nm_types[j]
@@ -341,16 +378,10 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
           k_sed=0
         }
         
-        # Check the t_lag condition
-        if(t_lag){
-          t_0 <- x[19]
-        }else{
-          t_0 <- 0
-        }
         
         constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                              'k_sed'= k_sed)
-        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "t_0"=t_0)
+        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n"=n)
         params <- c(fitted_params, constant_params)
         
         inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
@@ -373,7 +404,13 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
           stop(print("Length of predictions is not equal to the length of data"))
         }
         
-        score_per_conc[i] <- score_func(exp_data[,i+1], results)
+        if(score == "rmse"){
+          score_per_conc[i] <- rmse(exp_data[,i+1], results)
+        }else if(score == "AAFE"){
+          score_per_conc[i] <- AAFE(exp_data[,i+1], results)  
+        }else if (score == "PBKOF"){
+          score_per_conc[i] <- PBKOF(list(exp_data[,i+1]), list(results))
+        }
         
       }
       
@@ -384,10 +421,17 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
     return(mean(score_per_type))
   }
   
-  plot_func <- function(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted){
+  plot_func <- function(optimization, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score){
     
     library(ggplot2)
     x <- optimization$solution
+    
+    age <- x[19]#days
+    L = Size_estimation(age) #mm
+    dry_weight =  dry_weight_estimation(L) #mg
+    F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
+    n <- x[20]
+    
     plots_list <- list()
     for (j in 1:length(nm_types)) {
       nm_type <- nm_types[j]
@@ -401,7 +445,8 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
       sub_k <- x[7:12]
       ke_2 <- sub_k[j] 
       sub_C_sat <- x[13:18]
-      C_sat <- sub_C_sat[j]        
+      C_sat <- sub_C_sat[j]
+      
       sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
       
       score_per_conc <- c()
@@ -420,17 +465,10 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
           k_sed=0
         }
         
-        # Check the t_lag condition
-        if(t_lag){
-          t_0 <- x[19]
-        }else{
-          t_0 <- 0
-        }
         
         constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
-                             'k_sed'= ksed_predicted[which(ksed_predicted$Name==ksed_nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"], 
-                             'ku'=0, 'ke_1'=0)
-        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "t_0"=t_0)
+                             'k_sed'= k_sed)
+        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n"=n)
         params <- c(fitted_params, constant_params)
         
         inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
@@ -498,15 +536,11 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
   ############################################################################
   
   nm_types <- as.character(Mapping[,2])
-  if(t_lag){
-    x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6), 1)
-    lb <- c(rep(0,12), as.numeric(1.2*C3_data[C3_data$Time==2,2:7]), 0)
-    ub <- c(rep(4,6), rep(1,6), rep(0.4,6), 2)
-  }else{
-    x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6))
-    lb <- c(rep(0,12), as.numeric(1.2*C3_data[C3_data$Time==2,2:7]))
-    ub <- c(rep(4,6), rep(1,6), rep(0.4,6))
-  }
+
+  x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6), 14, 2.5)
+  lb <- c(rep(0,12), as.numeric(1.1*C3_data[C3_data$Time==2,2:7]), 10, 2)
+  ub <- c(rep(4,6), rep(1,6), rep(0.4,6),18, 4)
+
   C_water_0 <- c(0.1, 1, 10) # mg/L
   
   opts <- list( "algorithm" = "NLOPT_LN_SBPLX" , #"NLOPT_LN_NEWUOA"
@@ -525,41 +559,81 @@ simulation_function <- function(age, sedimentation, food_quantity, score, t_lag,
                                  C_water_0 = C_water_0,
                                  nm_types = nm_types,
                                  V_water = V_water,
-                                 F_rate = F_rate, 
-                                 dry_weight=dry_weight,
                                  ksed_predicted = ksed_predicted,
                                  sedimentation = sedimentation,
-                                 t_lag = t_lag)
+                                 score = score)
   
-  fitted_params <- optimization$solution[1:18]
+  fitted_params <- optimization$solution
   
-  
-  params_values <- data.frame(matrix(fitted_params, nrow = 3, byrow = T)) 
+  params_values <- data.frame(matrix(fitted_params[1:18], nrow = 3, byrow = T)) 
   colnames(params_values) <- nm_types
   rownames(params_values) <- c('a', 'ke_2', 'C_sat')
-  t_0 <- ifelse(t_lag, optimization$solution[19], NA)
-  plots <- plot_func(optimization, C_water_0, nm_types, V_water, F_rate, dry_weight, ksed_predicted)
+  age <- fitted_params[19]
+  n <- fitted_params[20]
   
-  input <- list('sedimentation'=sedimentation,
-                'food_quantity'=food_quantity,
-                'score'=score,
-                't_lag'=t_lag,
-                'N_iter'=N_iter)
+  temperature = 22 #oC
+  food = "high" #low/high
+  L = Size_estimation(age,temperature,food) #mm
+  dry_weight =  dry_weight_estimation(L) #mg
+  F_rate <- Filtration_rate_estimation(L,temperature)#mL/h
   
-  physiological_params <- list('age_(days)'=age,
-                               'Length_(mm)'=L,
-                               'Dry_weight_(mg)'=dry_weight,
-                               'Filtration_rate_(ml/h)'=F_rate)
+  input <- c('sedimentation'=sedimentation,
+             'score'=score,
+             'N_iter'=N_iter,
+             'method'=method)
+  
+  physiological_params <- c('Length_(mm)'=L,
+                            'Dry_weight_(mg)'=dry_weight,
+                            'Filtration_rate_(ml/h)'=F_rate)
   
   return(list('input'=input,
-              'score'=optimization$objective,
-              'physiological_params'=physiological_params,
-              'params_values'=params_values,
-              't_0'=t_0,
-              'plots'=plots))
+              'best_score'=optimization$objective,
+              'optimized_params'=params_values,
+              'age'=age,
+              'n'=n,
+              'physiological_params'=physiological_params
+  ))
   
 }
 ################################################################################
 
 
-test <- simulation_function(age=14, sedimentation=F, food_quantity='low', score='rmse', t_lag=T, N_iter=30)
+########################################
+
+#---------------|---------|-------|-------|
+#sedimentations | T       | F     |-------|
+#---------------|---------|-------|-------|
+#score          | PBKOF   | rmse  | AAFE  |
+#---------------|---------|-------|-------|
+#method         | Preuss  | Burns |-------|
+#---------------|---------|-------|-------|
+
+
+tests <- list('T PBKOF Preuss',
+              'T PBKOF Burns',
+              'T rmse Preuss',
+              'T rmse Burns',
+              'T AAFE Preuss',
+              'T AAFE Burns',
+              'F PBKOF Preuss',
+              'F PBKOF Burns',
+              'F rmse Preuss',
+              'F rmse Burns',
+              'F AAFE Preuss',
+              'F AAFE Burns')
+
+Initialization_ls <- list()
+
+library(parallel)
+start_time <- Sys.time()
+numCores <- detectCores()
+cl <- makeCluster(numCores-2)
+s.time <- Sys.time()
+paste0("The process started at ", s.time, ".")
+output <- parLapply(cl, tests, simulation_func)
+f.time <- Sys.time()
+Total_duration <-  f.time - s.time
+paste0("The process finished at ", f.time, ".")
+paste0("Total duration of optimization: ", Total_duration)
+stopCluster(cl)
+########################################

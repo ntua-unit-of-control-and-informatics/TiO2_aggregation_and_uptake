@@ -3,7 +3,7 @@ simulation_func <- function(input_string){
   sedimentation <-  unlist(splitted_input)[1]
   score <-  unlist(splitted_input)[2]
   method <-  unlist(splitted_input)[3]
-  N_iter <-  2000#unlist(splitted_input)[4]
+  N_iter <-  3000#unlist(splitted_input)[4]
   
   
   # This is a script to simulate the experiments in Cehn et al., 2019
@@ -299,7 +299,7 @@ simulation_func <- function(input_string){
   }
   
   # obj_func needs the x vector (2 values) and the nm_type
-  obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted){
+  obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score){
     
     score_per_type <- c()
     
@@ -379,7 +379,7 @@ simulation_func <- function(input_string){
   }
   
   
-  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted){
+  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted, sedimentation, score){
     
     library(ggplot2)
     x <- optimization$solution
@@ -507,7 +507,9 @@ simulation_func <- function(input_string){
                                  C_water_0 = C_water_0,
                                  nm_types = nm_types,
                                  V_water = V_water,
-                                 ksed_predicted=ksed_predicted)
+                                 ksed_predicted=ksed_predicted,
+                                 sedimentation = sedimentation,
+                                 score = score)
   
   
   fitted_params <- optimization$solution
@@ -518,7 +520,6 @@ simulation_func <- function(input_string){
   age <- fitted_params[16]
   n <- fitted_params[17]
   
-  age <- fitted_params[16]
   temperature = 22 #oC
   food = "high" #low/high
   L = Size_estimation(age,temperature,food) #mm
