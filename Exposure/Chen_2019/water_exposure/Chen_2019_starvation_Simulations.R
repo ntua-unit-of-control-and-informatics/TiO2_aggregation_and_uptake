@@ -379,7 +379,7 @@ simulation_func <- function(input_string){
   }
   
   
-  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted, sedimentation, score){
+  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted, sedimentation){
     
     library(ggplot2)
     x <- optimization$solution
@@ -547,7 +547,7 @@ simulation_func <- function(input_string){
 ########################################
 
 #---------------|---------|-------|-------|
-#sedimentations | T       | F     |-------|
+#sedimentation  | T       | F     |-------|
 #---------------|---------|-------|-------|
 #score          | PBKOF   | rmse  | AAFE  |
 #---------------|---------|-------|-------|
@@ -582,5 +582,4 @@ Total_duration <-  f.time - s.time
 paste0("The process finished at ", f.time, ".")
 paste0("Total duration of optimization: ", Total_duration)
 stopCluster(cl)
-########################################
-
+################################################################################

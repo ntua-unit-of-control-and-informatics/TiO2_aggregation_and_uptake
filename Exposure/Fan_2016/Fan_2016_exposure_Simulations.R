@@ -3,7 +3,7 @@ simulation_func <- function(input_string){
   sedimentation <-  unlist(splitted_input)[1]
   score <-  unlist(splitted_input)[2]
   method <-  unlist(splitted_input)[3]
-  N_iter <-  20#unlist(splitted_input)[4]
+  N_iter <-  1500#unlist(splitted_input)[4]
   
   # This is a script to simulate the experiments in Fan et al., 2016
   # The first experiment is about the waterborne exposure of D. Magna to TiO2 nanoparticles
@@ -344,11 +344,11 @@ simulation_func <- function(input_string){
     
     score_per_type <- c()
     
-    age <- x[19]#days
+    age <- 14#days
     L = Size_estimation(age) #mm
     dry_weight =  dry_weight_estimation(L) #mg
     F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
-    n <- x[20]
+    n <- x[19]
     
     for (j in 1:length(nm_types)) {
       nm_type <- nm_types[j]
@@ -426,11 +426,11 @@ simulation_func <- function(input_string){
     library(ggplot2)
     x <- optimization$solution
     
-    age <- x[19]#days
+    age <- 14#days
     L = Size_estimation(age) #mm
     dry_weight =  dry_weight_estimation(L) #mg
     F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
-    n <- x[20]
+    n <- x[19]
     
     plots_list <- list()
     for (j in 1:length(nm_types)) {
@@ -537,9 +537,9 @@ simulation_func <- function(input_string){
   
   nm_types <- as.character(Mapping[,2])
 
-  x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6), 14, 2.5)
-  lb <- c(rep(0,12), as.numeric(1.1*C3_data[C3_data$Time==2,2:7]), 10, 2)
-  ub <- c(rep(4,6), rep(1,6), rep(0.4,6),18, 4)
+  x0 <- c(rep(0.5,6), rep(0.001, 6), rep(0.25,6), 2.5)
+  lb <- c(rep(0,12), as.numeric(1.1*C3_data[C3_data$Time==2,2:7]), 2)
+  ub <- c(rep(4,6), rep(1,6), rep(0.4,6), 4)
 
   C_water_0 <- c(0.1, 1, 10) # mg/L
   
@@ -568,8 +568,8 @@ simulation_func <- function(input_string){
   params_values <- data.frame(matrix(fitted_params[1:18], nrow = 3, byrow = T)) 
   colnames(params_values) <- nm_types
   rownames(params_values) <- c('a', 'ke_2', 'C_sat')
-  age <- fitted_params[19]
-  n <- fitted_params[20]
+  age <- 14
+  n <- fitted_params[19]
   
   temperature = 22 #oC
   food = "high" #low/high
