@@ -1,19 +1,10 @@
-load('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2016/Fan_2016_Simulations_fit_age.RData')
+load('C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2018/Fan_2018_Simulations_fixed_age.RData')
 rm(list=setdiff(ls(), "output"))
 
-# This is a script to simulate the experiments in Fan et al., 2016
-# The first experiment is about the waterborne exposure of D. Magna to TiO2 nanoparticles
-# The second is about the trophic exposure to TiO2 exposured algae.
-
 # Working directory
-dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2016'
-setwd(dir)
-dir_uptake <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
-dir_filtration <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
 
-# dir_uptake <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
-# dir_filtration <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/'
-# dir <- 'C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2016'
+dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2018'
+setwd(dir)
 
 #=================#
 #  Water exposure #
@@ -21,95 +12,125 @@ dir_filtration <- 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/'
 
 # The following dataframe is a mappin of the of the TiO2 NPs types with 
 # their corresponding codes (which are simple letters)
-A <- c("A", "TiO2-T1")
-B <- c("B", "TiO2-T2")
+A <- c("A", "TiO2-H0")
+B <- c("B", "TiO2-S0")
 C <- c("C", "TiO2-H1")
 D <- c("D", "TiO2-S1")
-E <- c("E", "TiO2-H2")
-G <- c("G", "TiO2-S2")
+E <- c("E", "TiO2-H3")
+G <- c("G", "TiO2-S3")
+H <- c("H", "TiO2-H5")
+I <- c("I", "TiO2-S5")
 
-Mapping <- data.frame(rbind(A, B, C, D, E, G))
+Mapping <- data.frame(rbind(A, B, C, D, E, G, H, I))
 colnames(Mapping) <- c("Code", "Type")
 i <- 1:dim(Mapping)[2]
 Mapping[,i] <- apply(Mapping[,i], 2,
                      function(x) as.character(x))
 sapply(Mapping, class)
-
 nm_types <- as.character(Mapping[,2])
-
 
 # Load data  for water exposure - uptake phase
 
-# The values are reported as mg TiO2/g of dry daphnia
-# Time is given in minutes (the uptake experiment lasted 60 minutes)
-# Load the data for concentration = 0.1 mg/l
-C1_uptake_data <- read.csv('data/exposure_data/uptake/0.1_uptake.csv')
-colnames(C1_uptake_data)[-1] <- Mapping$Type
-C1_uptake_data[,2:7] <-  C1_uptake_data[,2:7]/1e03 # transform from mg/g daphnia to mg/mg daphnia
-C1_uptake_data[,1] <- C1_uptake_data[,1]/60 # Transform time to hours
+# Uptake - exposure = 1 mg/L
+# Time is given in minutes
+# Concentrations are given as mg Ti/g dry daphnia
+C1_uptake <- read.csv('data/1_uptake.csv')
 
-# Load the data for concentration = 1.0 mg/l
-C2_uptake_data <- read.csv('data/exposure_data/uptake/1_uptake.csv')
-colnames(C2_uptake_data)[-1] <- Mapping$Type
-C2_uptake_data[,2:7] <-  C2_uptake_data[,2:7]/1e03 # transform from mg/kg daphnia to mg/mg daphnia
-C2_uptake_data[,1] <- C2_uptake_data[,1]/60 # Transform time to hours
+# Uptake - exposure = 10 mg/L
+# Time is given in minutes
+# Concentrations are given as mg Ti/g dry daphnia
+C2_uptake <- read.csv('data/10_uptake.csv')
 
-# Load the data for concentration = 10.0 mg/l
-C3_uptake_data <- read.csv('data/exposure_data/uptake/10_uptake.csv')
-colnames(C3_uptake_data)[-1] <- Mapping$Type
-C3_uptake_data[,2:7] <-  C3_uptake_data[,2:7]/1e03 # transform from mg/kg daphnia to mg/mg daphnia
-C3_uptake_data[,1] <- C3_uptake_data[,1]/60 # Transform time to hours
+# Transform time from minutes to hours
+C1_uptake[,1] <- C1_uptake[,1]/60
+C2_uptake[,1] <- C2_uptake[,1]/60
 
-# Load data  for water exposure - depuration phase
+# Transform measured concentrations from 1 g dry basis to 1 mg dry basis of daphnia magna
+C1_uptake[,2:9] <- C1_uptake[,2:9]/1000 
+C2_uptake[,2:9] <- C2_uptake[,2:9]/1000
 
-# The values are reported as % retained after 2 hours uptake phase
-# Time is given in hours (the depuration experiment lasted 24 hours after 2 hours uptake])
-# Load the data for concentration = 0.1 mg/l
-C1_depuration_data <- read.csv('data/exposure_data/depuration/0.1_depuration.csv')
-colnames(C1_depuration_data)[-1] <- Mapping$Type
+# Transform the concentrations of Ti to concentrations of TiO2
+Ti_H_frac <- 73.15/100 # the mass fraction of Ti in all H type Nanoparticles measured in Fan et al. (2018)
+Ti_S_frac <- 74.85/100 # the mass fraction of Ti in all S type Nanoparticles measured in Fan et al. (2018)
 
-# Load the data for concentration = 1.0 mg/l
-C2_depuration_data <- read.csv('data/exposure_data/depuration/1_depuration.csv')
-colnames(C2_depuration_data)[-1] <- Mapping$Type
+# Divide the concentrations of all H nanoparticles with Ti_H_frac
+C1_uptake[,c(2,4,6,8)] <- C1_uptake[,c(2,4,6,8)]/Ti_H_frac  # mg TiO2/mg DW D. magna
+C2_uptake[,c(2,4,6,8)] <- C2_uptake[,c(2,4,6,8)]/Ti_H_frac  # mg TiO2/mg DW D. magna
 
-# Load the data for concentration = 10.0 mg/l
-C3_depuration_data <- read.csv('data/exposure_data/depuration/10_depuration.csv')
-colnames(C3_depuration_data)[-1] <- Mapping$Type
+# Divide the concentrations of all S nanoparticles with Ti_S_frac
+C1_uptake[,c(3,5,7,9)] <- C1_uptake[,c(3,5,7,9)]/Ti_S_frac  # mg TiO2/mg DW D. magna
+C2_uptake[,c(3,5,7,9)] <- C2_uptake[,c(3,5,7,9)]/Ti_S_frac  # mg TiO2/mg DW D. magna
 
-# Load the concentrations at the ending of depuration phase (units = mg TiO2/g daphnia)
-final_concentrations <- read.csv('data/exposure_data/depuration/final_concentrations.csv')[2:7]
-rownames(final_concentrations) <- c("C1", "C2", "C3")
-colnames(final_concentrations) <-  Mapping$Type
-final_concentrations <- final_concentrations/1e03 # transform 1 g of daphnia to 1 mg 
+# Depuration - exposure = 1 mg/L
+# Time is given in hours
+# values represent the retained TiO2 concentration as a % ratio of the 
+# measured concentration after a 2-hour exposure
+C1_depuration <- read.csv('data/1_depuration.csv')
 
-# next i calculate the concentration of daphnia at each experiment at time_point=2 hours (C_2h)
-# from C_2h = C_final/x, where x is the % percentage of final concentration to the C_2h
+# Depuration - exposure = 10 mg/L
+# Time is given in hours
+# values represent the retained TiO2 concentration as a % ratio of the 
+# measured concentration after a 2-hour exposure
+C2_depuration <- read.csv('data/10_depuration.csv')
 
-# Take the percentages corresponding at the end of the depuration phase
-last_point <- dim(C1_depuration_data)[1]
-percentages <- rbind(C1_depuration_data[last_point,2:7], C2_depuration_data[last_point,2:7], C3_depuration_data[last_point,2:7])/100
-rownames(percentages) <- c("C1", "C2", "C3")
+# Load the measured concentrations at the end of depuration phase
+# given in the supplementary material of Fan et al. (2018)
+# The concentrations are given as mg Ti/ g dry weight of D. magna
+final_concentrations <- read.csv('data/final_concentrations.csv')
 
-# The concentrations of daphnia at time=2h, (end of exposure)
-C_2h <- final_concentrations/percentages # mg TiO2/ mg daphnia
+# Transform the concentrations to mg TiO2 / mg dry daphnia 
+# as we did previously
+final_concentrations[,c(2,4,6,8)] <- final_concentrations[,c(2,4,6,8)]/Ti_H_frac/1000
+final_concentrations[,c(3,5,7,9)] <- final_concentrations[,c(3,5,7,9)]/Ti_S_frac/1000
 
-# Now we are able to calculate the actual concentration of daphnia at each time point of depuration by multiplying
-# the C1_depuration_data, C2_depuration_data and C3_depuration_data with C_2h
+# Calculate the actual concentrations measured during the depuration phase
+# The concentration at the beginning of the depuration is C_2h (because it followed
+# a 2-hour exposure) and is equal to C_2h = C / %_ratio
+C_2h_C1 <- final_concentrations[1,2:9]/(C1_depuration[6,2:9]/100) 
+C_2h_C2 <- final_concentrations[2,2:9]/(C2_depuration[6,2:9]/100) 
 
-for (i in 2:7) {
-  C1_depuration_data[,i] <- C_2h[1,i-1]*C1_depuration_data[,i]/100
-  C2_depuration_data[,i] <- C_2h[2,i-1]*C2_depuration_data[,i]/100
-  C3_depuration_data[,i] <- C_2h[3,i-1]*C3_depuration_data[,i]/100
+# The measured concentrations at 2 hours between the exposure and the depuration
+# experiments have small differences. For this reason, we will take the mean value 
+# of this 2 measurments and we will replace the concentrations at 2 hours 
+# at dataframes C1_uptake and C2_uptake
+
+# C1_uptake: correct the values at 2 hours
+C_2h_corrected <- c()
+for (i in 1:length(C_2h_C1)) { # loop for every TiO2 type
+  C_2h_corrected[i] <-  mean(c(C1_uptake[4,i+1], as.numeric(C_2h_C1[i]))) 
 }
-C1_depuration_data[,1] <- C1_depuration_data[,1] +2
-C2_depuration_data[,1] <- C2_depuration_data[,1] +2
-C3_depuration_data[,1] <- C3_depuration_data[,1] +2
+# replace the C1_uptake concentrations at 2 hours with the corrected values
+C1_uptake[4,2:9] <- C_2h_corrected
 
-# Concatenate the uptake and the depuration data
-C1_data <- rbind(C1_uptake_data, C1_depuration_data)
-C2_data <- rbind(C2_uptake_data, C2_depuration_data)
-C3_data <- rbind(C3_uptake_data, C3_depuration_data)
+# Calculate the actual cooncentrations at the depuration phase
+C1_depuration <- C1_depuration[-1,] # remove the data at the beginning of the depuration 
+#because the are already included in uptake data
+C1_depuration$Time <- C1_depuration$Time + 2
+for (j in 2:dim(C1_depuration)[2]) {
+  C1_depuration[,j] <- C_2h_corrected[j-1]*C1_depuration[,j]/100 
+}
+# Total data for C1 exposure experiment
+C1_data <- rbind(C1_uptake, C1_depuration)
+C1_data$Time <- c(0.33, 0.67, 1, 2, 5, 8, 14, 26, 50)
 
+# C2_uptake: correct the values at 2 hours
+C_2h_corrected <- c()
+for (i in 1:length(C_2h_C2)) { # loop for every TiO2 type
+  C_2h_corrected[i] <-  mean(c(C2_uptake[4,i+1], as.numeric(C_2h_C2[i]))) 
+}
+# replace the C1_uptake concentrations at 2 hours with the corrected values
+C2_uptake[4,2:9] <- C_2h_corrected
+
+# Calculate the actual cooncentrations at the depuration phase
+C2_depuration <- C2_depuration[-1,] # remove the data at the beginning of the depuration 
+#because the are already included in uptake data
+C2_depuration$Time <- C2_depuration$Time + 2
+for (j in 2:dim(C2_depuration)[2]) {
+  C2_depuration[,j] <- C_2h_corrected[j-1]*C2_depuration[,j]/100 
+}
+# Total data for C1 exposure experiment
+C2_data <- rbind(C2_uptake, C2_depuration)
+C2_data$Time <- c(0.33, 0.67, 1, 2, 5, 8, 14, 26, 50)
 
 # Betini et al. (2019)
 #input: age [days], temperature [oC], food["low"/"high"]
@@ -198,12 +219,9 @@ V_water <- 0.1 # L
 N <- 10
 
 # Load the predicted ksed values
-setwd(dir)
-ksed_predicted <- read.csv("data/Fan_2016_ksed_predictions.csv")
+ksed_predicted <- read.csv("data/Fan_2018_ksed_predictions.csv")
 ksed_predicted <- ksed_predicted[, c(1,4,6)]
 colnames(ksed_predicted) <- c("Name", "Concentration_mg/L", "k_sed")
-
-##########################################################
 
 ##########################################################
 
@@ -281,17 +299,12 @@ PBKOF <- function(observed, predicted, comp.names =NULL){
   #return(list(Total_index = Ic, Compartment_index= I))
 }
 
-#=====================================#
-# Functions used for the optimization #
-#=====================================#
-
-# ode_func(): the differential equation system that deiscribes the model
-
 ode_func <- function(time, inits, params){
   with(as.list(c(inits, params)),{
     
     # Units explanation:
     # C_water: mg TiO2 / L water (same as data)
+    # C_algae: mg TiO2 / g algae 
     # C_daphnia: mg TiO2 / mg daphnia 
     # k_sed: 1/h
     # F_rate: L water/h/individual daphnia 
@@ -299,16 +312,15 @@ ode_func <- function(time, inits, params){
     
     # Number of Daphnids per beaker
     N_current <- 10
-    # Fan et al. (2016) let the daphnids in SM7 medium for 3 hours
-    # prior to the experiment to empty their guts
-    time_d <- 3/24+time/24 #time in days
+    # Exponential decay of dry weight
+    #dry_weight <- dry_weight* exp(-beta*time/24)
+    time_d <- 3/24 + time/24 #time in days
     # Weight loss under starvation through exponential decay (Elen et al., 1989)
     reduction <-ifelse(time_d<2, (1- 0.32*(1-exp(-36.6*time_d))), 
                        (0.682 - 0.435 * (1- 16.79*exp(-1.41*time_d))))
     dry_weight_current <- reduction * dry_weight
     
-    #k_sed <- 0
-    # C_water: TiO2 concentration in water
+    #C_water: TiO2 concentration in water
     dC_water <- -(N_current*a*(F_rate/1000)*((1-C_daphnia/C_sat)^n)*C_water)/V_water-
       k_sed*C_water
     
@@ -316,7 +328,7 @@ ode_func <- function(time, inits, params){
     dC_daphnia = a*(F_rate/1000)*((1-C_daphnia/C_sat)^n)*C_water/dry_weight - ke_2*C_daphnia 
     
     # Excreted from each D.magna
-    dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight  
+    dM_Daphnia_excreted <-  N_current*ke_2*C_daphnia*dry_weight
     
     # Mass in  Sediment
     dM_sed <- k_sed*C_water*V_water
@@ -335,27 +347,26 @@ ode_func <- function(time, inits, params){
                 "M_water"=M_water,
                 "Mass_balance"=Mass_balance))
     
-    
   })
 }
 
 evaluation_func <- function(simulations){
-  C_water_0 <- c(0.1, 1, 10) # mg/L
+  C_water_0 <- c(1, 10) # mg/L
   scores_df <- data.frame(matrix(data=NA, nrow = 12, ncol = 3))
   colnames(scores_df) <- c('rmse', 'AAFE', 'PBKOF')
   
-  for(k in 1:length(simulations)){
+  for (k in 1:length(simulations)) {
     sim <- simulations[[k]]
     x <- as.vector(t(sim$optimized_params))
     age <- sim$age#days
+    method <- sim$input['method']
+    L = Size_estimation(age) #mm
+    dry_weight =  dry_weight_estimation(L) #mg
+    F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
     n <- sim$n
     
     method <- sim$input["method"]
     sedimentation <- sim$input['sedimentation']
-    
-    L = Size_estimation(age) #mm
-    dry_weight =  dry_weight_estimation(L) #mg
-    F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
     
     rmse_score_per_type <- c()
     AAFE_score_per_type <- c()
@@ -363,42 +374,40 @@ evaluation_func <- function(simulations){
     
     for (j in 1:length(nm_types)) {
       nm_type <- nm_types[j]
+      nm_type <- substr(nm_type, nchar(nm_type) - 2 + 1, nchar(nm_type))# Extract last 2 characters
+      exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type])
+      colnames(exp_data) <- c('Time', 'C1', 'C2')
+      exp_data[,1] <- c(0.33, 0.67, 1.0, 2.0, 5.0, 8.0, 14.0, 26.0, 50) # hours
       
-      exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
-      colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
-      exp_data[,1] <- c(0.16, 0.33, 0.67, 1.0, 2.0, 5.0, 8.0, 14.0, 26.0) # hours
-      
-      sub_a <- x[1:6]
+      sub_a <- x[1:8]
       a <- sub_a[j] 
-      sub_k <- x[7:12]
+      sub_k <- x[9:16]
       ke_2 <- sub_k[j] 
-      sub_C_sat <- x[13:18]
+      sub_C_sat <- x[17:24]
       C_sat <- sub_C_sat[j]    
       
-      sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
+      sol_times <- unique(c(seq(0,2, 0.01), seq(2,52,0.1)))
       
       rmse_score_per_conc <- c()
       AAFE_score_per_conc <- c()
       PBKOF_score_per_conc <- c()
       
-      ksed_nm_type <- substr(nm_type, nchar(nm_type) - 2 + 1, nchar(nm_type)) # Extract last 2 characters
-      
-      for (i in 1:3) { #loop for the 3 different concentrations
+      for (i in 1:2) { #loop for the 2 different concentrations
+        
+        # Check the sedimentation condition
         if(sedimentation){
-          k_sed <- ksed_predicted[which(ksed_predicted$Name==ksed_nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"]
+          k_sed <- ksed_predicted[which(ksed_predicted$Name==nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"]
         }else{
           k_sed=0
         }
         
         constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                              'k_sed'= k_sed)
-        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n" = n)
+        fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n"=n)
         params <- c(fitted_params, constant_params)
         
-        
         inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
-                   'M_sed'=0)
-        
+                   'M_sed'=0)      
         # create events to force C_water=0 at time = 2 hours
         eventdat <- data.frame(var = c("C_water"),
                                time = 2,
@@ -411,7 +420,6 @@ evaluation_func <- function(simulations){
                                             events = list(data = eventdat),
                                             method="lsodes",
                                             rtol = 1e-3, atol = 1e-3))
-        
         if(sum(solution$time %in% exp_data$Time) == dim(exp_data)[1]){
           results <- solution[which(solution$time %in% exp_data$Time), 'C_daphnia']
         } else{
@@ -421,6 +429,7 @@ evaluation_func <- function(simulations){
         rmse_score_per_conc[i] <- rmse(exp_data[,i+1], results)
         AAFE_score_per_conc[i] <- AAFE(exp_data[,i+1], results)  
         PBKOF_score_per_conc[i] <- PBKOF(list(exp_data[,i+1]), list(results))
+        
       }
       rmse_score_per_type[j] <- mean(rmse_score_per_conc)
       AAFE_score_per_type[j] <- mean(AAFE_score_per_conc)
@@ -431,62 +440,63 @@ evaluation_func <- function(simulations){
   return(scores_df)
 }
 
-plot_func <- function(simulation, C_water_0, nm_types, V_water,  ksed_predicted){
+plot_func <- function(simulation, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score){
   
   library(ggplot2)
-  
-  plots_list <- list()
-  
   sim <- simulation
   x <- as.vector(t(sim$optimized_params))
   age <- sim$age#days
+  method <- sim$input['method']
+  L = Size_estimation(age) #mm
+  dry_weight =  dry_weight_estimation(L) #mg
+  F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
   n <- sim$n
   
   method <- sim$input["method"]
   sedimentation <- sim$input['sedimentation']
   
-  L = Size_estimation(age) #mm
-  dry_weight =  dry_weight_estimation(L) #mg
-  F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
-  
-  
+  plots_list <- list()
   for (j in 1:length(nm_types)) {
     nm_type <- nm_types[j]
+    nm_type <- substr(nm_type, nchar(nm_type) - 2 + 1, nchar(nm_type))# Extract last 2 characters
     
-    exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type], C3_data[nm_type])
-    colnames(exp_data) <- c('Time', 'C1', 'C2', 'C3')
-    exp_data[,1] <- c(0.16, 0.33, 0.67, 1.0, 2.0, 5.0, 8.0, 14.0, 26.0) # hours
+    exp_data <- cbind(C1_data["Time"], C1_data[nm_type], C2_data[nm_type])
+    colnames(exp_data) <- c('Time', 'C1', 'C2')
+    exp_data[,1] <- c(0.33, 0.67, 1.0, 2.0, 5.0, 8.0, 14.0, 26.0, 50) # hours
     
-    sub_a <- x[1:6]
+    sub_a <- x[1:8]
     a <- sub_a[j] 
-    sub_k <- x[7:12]
+    sub_k <- x[9:16]
     ke_2 <- sub_k[j] 
-    sub_C_sat <- x[13:18]
-    C_sat <- sub_C_sat[j]       
+    sub_C_sat <- x[17:24]
+    C_sat <- sub_C_sat[j]    
     
-    sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
+    sol_times <- unique(c(seq(0,2, 0.01), seq(2,52,0.1)))
     
-    keep_predictions <- data.frame(matrix(NA, nrow = length(sol_times), ncol = 4))
-    keep_predictions[,1] <- sol_times
-    colnames(keep_predictions) <- c('Time', 'C1', 'C2', 'C3')
-    
+    score_per_conc <- c()
     ksed_nm_type <- substr(nm_type, nchar(nm_type) - 2 + 1, nchar(nm_type)) # Extract last 2 characters
-    for (i in 1:3) { #loop for the 3 different concentrations
+    
+    keep_predictions <- data.frame(matrix(NA, nrow = length(sol_times), ncol = 3))
+    keep_predictions[,1] <- sol_times
+    colnames(keep_predictions) <- c('Time', 'C1', 'C2')
+    
+    for (i in 1:2) { #loop for the 3 different concentrations
+      
+      # Check the sedimentation condition
       if(sedimentation){
         k_sed <- ksed_predicted[which(ksed_predicted$Name==ksed_nm_type & ksed_predicted$`Concentration_mg/L`==C_water_0[i]),"k_sed"]
       }else{
         k_sed=0
       }
       
+      
       constant_params <- c("F_rate" = F_rate, "V_water" = V_water, "dry_weight" = dry_weight,
                            'k_sed'= k_sed)
-      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n" = n)
-      
+      fitted_params <- c("a"=a, "ke_2"=ke_2, "C_sat"=C_sat, "n"=n)
       params <- c(fitted_params, constant_params)
       
       inits <- c('C_water'=C_water_0[i], 'C_daphnia'=0, 'M_Daphnia_excreted'=0,
-                 'M_sed'=0)
-      
+                 'M_sed'=0)            
       # create events to force C_water=0 at time = 2 hours
       eventdat <- data.frame(var = c("C_water"),
                              time = 2,
@@ -494,12 +504,11 @@ plot_func <- function(simulation, C_water_0, nm_types, V_water,  ksed_predicted)
                              method = 'rep'
       )
       
-      solution <<- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
-                                           parms = params,
-                                           events = list(data = eventdat),
-                                           method="lsodes",
-                                           rtol = 1e-3, atol = 1e-3))
-      
+      solution <- data.frame(deSolve::ode(times = sol_times,  func = ode_func, y = inits,
+                                          parms = params,
+                                          events = list(data = eventdat),
+                                          method="lsodes",
+                                          rtol = 1e-3, atol = 1e-3))
       keep_predictions[,i+1] <- solution$C_daphnia
       
     }
@@ -516,11 +525,9 @@ plot_func <- function(simulation, C_water_0, nm_types, V_water,  ksed_predicted)
     draw_plot <- ggplot()+
       geom_line(data = keep_predictions, aes(x=Time, y=C1, color=strings[1]), size=1.7)+
       geom_line(data = keep_predictions, aes(x=Time, y=C2, color=strings[2]), size=1.7)+
-      geom_line(data = keep_predictions, aes(x=Time, y=C3, color=strings[3]), size=1.7)+
       
       geom_point(data = exp_data, aes(x=Time, y=C1, color=strings[1]), size=5)+
       geom_point(data = exp_data, aes(x=Time, y=C2, color=strings[2]), size=5)+
-      geom_point(data = exp_data, aes(x=Time, y=C3, color=strings[3]), size=5)+
       #scale_y_log10()+
       
       
@@ -547,14 +554,14 @@ plot_func <- function(simulation, C_water_0, nm_types, V_water,  ksed_predicted)
 
 
 ################################################################################
-C_water_0 <- c(0.1, 1, 10) # mg/L
+C_water_0 <- c(1, 10) # mg/L
 
 scores <- evaluation_func(output)
 scores
 
 # best with PBKOF
-plot_func(output[[1]], C_water_0, nm_types, V_water,  ksed_predicted)
+plot_func(output[[7]], C_water_0, nm_types, V_water,  ksed_predicted)
 # best with rmse
-plot_func(output[[4]], C_water_0, nm_types, V_water,  ksed_predicted)
+plot_func(output[[10]], C_water_0, nm_types, V_water,  ksed_predicted)
 #best with AAFE
-plot_func(output[[6]], C_water_0, nm_types, V_water,  ksed_predicted)
+plot_func(output[[12]], C_water_0, nm_types, V_water,  ksed_predicted)

@@ -254,7 +254,7 @@ ode_func <- function(time, inits, params){
     }
     # Chen et al. (2019) let the daphnids in SM7 medium for 24 hours
     # priot to the experiment to empty their guts
-    time_d <- 24+time/24 #time in days
+    time_d <- 24/24+time/24 #time in days
     # Weight loss under starvation through exponential decay (Elen et al., 1989)
     reduction <-ifelse(time_d<2, (1- 0.32*(1-exp(-36.6*time_d))), 
                        (0.682 - 0.435 * (1- 16.79*exp(-1.41*time_d))))
@@ -498,7 +498,7 @@ plot_func <- function(simulation, C_water_0, nm_types, V_water,  ksed_predicted)
 C_water_0 <- c(0.1, 1, 10) # mg/L
 scores <- evaluation_func(output)
 
-plot_func(output[[4]], C_water_0, nm_types, V_water,  ksed_predicted)
+plot_func(output[[5]], C_water_0, nm_types, V_water,  ksed_predicted)
 
 # best with PBKOF
 output[[1]]

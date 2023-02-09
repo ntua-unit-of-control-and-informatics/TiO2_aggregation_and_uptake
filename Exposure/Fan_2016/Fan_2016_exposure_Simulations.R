@@ -300,7 +300,7 @@ simulation_func <- function(input_string){
       N_current <- 10
       # Fan et al. (2016) let the daphnids in SM7 medium for 3 hours
       # prior to the experiment to empty their guts
-      time_d <- 3+time/24 #time in days
+      time_d <- 3/24+time/24 #time in days
       # Weight loss under starvation through exponential decay (Elen et al., 1989)
       reduction <-ifelse(time_d<2, (1- 0.32*(1-exp(-36.6*time_d))), 
                          (0.682 - 0.435 * (1- 16.79*exp(-1.41*time_d))))
@@ -344,12 +344,12 @@ simulation_func <- function(input_string){
     
     score_per_type <- c()
     
-    age <- 14#days
+    age <- 14
+    n <- x[19]
     L = Size_estimation(age) #mm
     dry_weight =  dry_weight_estimation(L) #mg
     F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
-    n <- x[19]
-    
+
     for (j in 1:length(nm_types)) {
       nm_type <- nm_types[j]
       
@@ -425,12 +425,12 @@ simulation_func <- function(input_string){
     
     library(ggplot2)
     x <- optimization$solution
-    
-    age <- 14#days
+
+    age <- 14
+    n <- x[19]
     L = Size_estimation(age) #mm
     dry_weight =  dry_weight_estimation(L) #mg
     F_rate <- Filtration_rate_estimation(L, method = method)#mL/h
-    n <- x[19]
     
     plots_list <- list()
     for (j in 1:length(nm_types)) {
@@ -568,7 +568,7 @@ simulation_func <- function(input_string){
   params_values <- data.frame(matrix(fitted_params[1:18], nrow = 3, byrow = T)) 
   colnames(params_values) <- nm_types
   rownames(params_values) <- c('a', 'ke_2', 'C_sat')
-  age <- 14
+  age <- 14#fitted_params[19]
   n <- fitted_params[19]
   
   temperature = 22 #oC
@@ -622,7 +622,6 @@ tests <- list('T PBKOF Preuss',
               'F AAFE Preuss',
               'F AAFE Burns')
 
-Initialization_ls <- list()
 
 library(parallel)
 start_time <- Sys.time()

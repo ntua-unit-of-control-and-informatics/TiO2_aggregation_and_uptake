@@ -260,7 +260,7 @@ simulation_func <- function(input_string){
       }
       # Chen et al. (2019) let the daphnids in SM7 medium for 24 hours
       # priot to the experiment to empty their guts
-      time_d <- 24+time/24 #time in days
+      time_d <- 24/24+time/24 #time in days
       # Weight loss under starvation through exponential decay (Elen et al., 1989)
       reduction <-ifelse(time_d<2, (1- 0.32*(1-exp(-36.6*time_d))), 
                          (0.682 - 0.435 * (1- 16.79*exp(-1.41*time_d))))
@@ -299,7 +299,7 @@ simulation_func <- function(input_string){
   }
   
   # obj_func needs the x vector (2 values) and the nm_type
-  obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score){
+  obj_func <- function(x, C_water_0, nm_types, V_water, ksed_predicted, sedimentation, score, method){
     
     score_per_type <- c()
     
@@ -379,7 +379,7 @@ simulation_func <- function(input_string){
   }
   
   
-  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted, sedimentation){
+  plot_func <- function(optimization, C_water_0, nm_types, V_water,  ksed_predicted, sedimentation, method){
     
     library(ggplot2)
     x <- optimization$solution
@@ -509,7 +509,8 @@ simulation_func <- function(input_string){
                                  V_water = V_water,
                                  ksed_predicted=ksed_predicted,
                                  sedimentation = sedimentation,
-                                 score = score)
+                                 score = score,
+                                 method = method)
   
   
   fitted_params <- optimization$solution
@@ -521,7 +522,7 @@ simulation_func <- function(input_string){
   n <- fitted_params[17]
   
   temperature = 22 #oC
-  food = "high" #low/high
+  food <- 'high'
   L = Size_estimation(age,temperature,food) #mm
   dry_weight =  dry_weight_estimation(L) #mg
   F_rate <- Filtration_rate_estimation(L,temperature)#mL/h
