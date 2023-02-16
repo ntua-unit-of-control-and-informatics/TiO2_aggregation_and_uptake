@@ -6,9 +6,6 @@ simulation_func <- function(input_string){
   N_iter <-  2000#unlist(splitted_input)[4]
   
   # This is a script to simulate the experiments in Fan et al., 2016
-  # The first experiment is about the waterborne exposure of D. Magna to TiO2 nanoparticles
-  # The second is about the trophic exposure to TiO2 exposured algae.
-  
   # Working directory
   
   dir = 'C:/Users/vassi/Documents/GitHub/TiO2_aggregation_and_uptake/Exposure/Fan_2018'

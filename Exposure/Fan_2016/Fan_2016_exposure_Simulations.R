@@ -284,7 +284,7 @@ simulation_func <- function(input_string){
   # Functions used for the optimization #
   #=====================================#
   
-  # ode_func(): the differential equation system that deiscribes the model
+  # ode_func(): the differential equation system that describes the model
   
   ode_func <- function(time, inits, params){
     with(as.list(c(inits, params)),{
