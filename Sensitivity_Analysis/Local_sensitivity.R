@@ -165,7 +165,7 @@ AUC <- function(x, y){
 # *Local Sensitivity Function* #
 #==============================#
 
-Sensitivity_func <- function(model, params, targets, ranges, sol_times, C_water_0, heatmap = FALSE){
+Sensitivity_func <- function(model, params, targets, ranges, sol_times, eventdat, C_water_0, heatmap = FALSE){
 
   # The variation dp of each parameter will be equal to "ranges" value 
   if(!is.numeric(ranges) | length(ranges) != 1 | abs(ranges)>1){
@@ -204,14 +204,6 @@ Sensitivity_func <- function(model, params, targets, ranges, sol_times, C_water_
   # Get the number of the parameters and targets
   N_params <- length(params_0) 
   N_targets <- length(targets)
-  
-  # create events to force C_water=0 at time = 2 hours
-  eventdat <- data.frame(var = c("C_water"),
-                         time = 2,
-                         value = 0,
-                         method = 'rep'
-  )
-  
   
   # Calculate AUC of each target-compartment for the initial parameters
   AUC_0 <- c()
@@ -323,18 +315,33 @@ C_water_0 <- c(0.1, 1, 10) # mg/L
 # The fitted parameters for T1-TiO2
 # method = 'Preuss'
 # sedimentation = T
-sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
+#sol_times <- unique(c(seq(0,2, 0.01), seq(2,28,0.1)))
 sol_times <- seq(0,48, 0.1)
+
+# create events
+create_events <- function(C_warer, time_points){
+  eventdat <- data.frame(var = rep("C_water", length(refresh_moments)),
+                         time = refresh_moments,
+                         value = rep(C_warer, length(refresh_moments)),
+                         method = rep('rep', length(refresh_moments))
+  )
+  return(eventdat)
+}
+refresh_moments <- seq(3,24,3)
+eventdat_01 <- create_events(0.1, refresh_moments)
+eventdat_1 <- create_events(1, refresh_moments)
+eventdat_10 <- create_events(10, refresh_moments)
+
 fitted_params <- c('age'=14,'a'=0.331, 'ke_2'=0.021, 'C_sat'=0.136, 'n'=2)
 targets <- c('C_daphnia', 'M_Daphnia_excreted', 'M_sed')
 ranges <- 0.1
 
 SA_0.1 <- Sensitivity_func(model=ode_func, params=fitted_params, targets=targets,
-                           ranges=ranges, sol_times= sol_times,
+                           ranges=ranges, sol_times= sol_times, eventdat=eventdat_01,
                            C_water_0=C_water_0[1], heatmap = T)
 SA_1.0 <- Sensitivity_func(model=ode_func, params=fitted_params, targets=targets,
-                           ranges=ranges,  sol_times= sol_times,
+                           ranges=ranges,  sol_times= sol_times, eventdat=eventdat_1,
                            C_water_0=C_water_0[2], heatmap = T)
 SA_10 <- Sensitivity_func(model=ode_func, params=fitted_params, targets=targets,
-                          ranges=ranges,  sol_times= sol_times,
+                          ranges=ranges,  sol_times= sol_times, eventdat=eventdat_10,
                           C_water_0=C_water_0[3], heatmap = T)
