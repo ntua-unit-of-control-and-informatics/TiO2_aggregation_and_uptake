@@ -5,7 +5,7 @@ Frate <- function(C, C_sat = 0.28667491, F_max =F_max,n=2.31671804){
   return(F_max*(1-(C/C_sat)^n))
 }
 
-n <-4
+n <-2
 C_sat <- 0.200
 age <- 5
 L = Size_estimation(age) #mm
