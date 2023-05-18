@@ -138,29 +138,29 @@ ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0,
   
   if(molar == FALSE){
     
-    hardness <- Mg + Ca + Zn+ Cu+ Co #in mg/L
+    hardness <- 4.118*Mg + 2.497*Ca  #in mg/L
     for (compound in names(ion_charge)){
       #convert atoms/molecules of arguments from mass concentration (mg/L) to molar concentration (mol/L)
       eval(parse(text=paste(compound,"=",compound, "/(ion_MR[[compound]]*1000)",sep="")))
     }
-    molar_fractions <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
+    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
                             "-1" = Cl+NO3+HCO3+H2PO4, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA ) #in mol/L
   }else{
-    molar_fractions <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
+    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
                             "-1" = Cl+NO3+HCO3+H2PO4, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA  )
     for (compound in names(ion_charge)){
       #convert atoms/molecules of arguments from mass concentration (mg/L) to molar concentration (mol/L)
       eval(parse(text=paste(compound,"=",compound,"*(ion_MR[[compound]]*1000)",sep="")))
     }
-    hardness <- Mg + Ca + Zn+ Cu+ Co
+    hardness <- 4.118*Mg + 2.497*Ca 
   }
-  return(list("molar_fractions" = molar_fractions, "hardness" = hardness))
+  return(list("ion_valence_concentation" = ion_valence_concentation, "hardness" = hardness))
 }
 
 
 
-#Zhang et al.2008
+#Tso et al.2010
 
-zhang_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
-zhang_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
+Tso_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
+Tso_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
 
