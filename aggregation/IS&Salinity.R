@@ -161,6 +161,27 @@ ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0,
 
 #Tso et al.2010
 
-Tso_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
-Tso_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
+#Tso_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
+#Tso_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
 
+MMD <- ion_calc(Ca = 0.00126 , Cl = 0.00252+0.000986+0.00533+0.137931, Mg = 0.000986+0.000814, 
+                SO4 = 0.000814, K = 0.00533+0.000441, H2PO4 = 0.000441, Na = 0.137931+0.002676,
+                HPO4=0.001338,molar=TRUE)
+
+M199 <- ion_calc(Ca = 0.001802, Cl = 0.002604+0.00533+0.11724, Fe = 0.0000017, NO3 = 0.0000017, 
+                 Mg = 0.000814, SO4 = 0.000814, K = 0.00533, 
+                 Na = 0.11724+0.001014, H2PO4 = 0.001014 , 
+                 molar = TRUE)
+
+EMEM <- ion_calc(Ca = 0.001801, Cl = 0.002602+0.4+6.8, Mg = 0.09767, SO4 = 0.09767,
+                 K = 0.4, Na = 2.2+6.8+0.140, HCO3 = 2.2, H2PO4 = 0.140,
+                 molar=TRUE)
+
+Dryls_buffer <- ion_calc(Na = 0.006+0.002+0.002, C6H5O7 = 0.002, H2PO4 = 0.002, 
+                         HPO4 = 0.001, Ca = 0.0015,
+                         Cl = 0.003,  
+                         molar = TRUE)
+
+E3 <- ion_calc(Na = 0.005, Cl = 0.005 + 0.00017 + 0.00066,
+               K = 0.00017, Ca = 0.00033, Mg = 0.00033, SO4 = 0.00033 ,
+               molar = TRUE)
