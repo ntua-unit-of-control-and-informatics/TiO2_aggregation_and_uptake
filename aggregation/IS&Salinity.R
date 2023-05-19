@@ -120,21 +120,21 @@ for(medium in names(media)){
 
 # Function for estimating alkalinity, hardness and ion molarity
 #if molar is TRUE, provide the molarity of each ion in mol/L, else provide ion mass in mg/L
-ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0, 
+ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0, Sr = 0, Br = 0,
                  Fe = 0, Cl = 0, NO3 = 0, SO4 = 0,  PO4 =0, CO3 = 0, HCO3 = 0, H2PO4 = 0, HPO4 = 0, BO3 =  0, 
-                 MoO4 = 0, SiO3 = 0, NH4  = 0 ,
+                 MoO4 = 0, SiO3 = 0, NH4  = 0, Ti=0,
                  Co = 0,  C6H5O7 = 0, EDTA = 0, molar = FALSE){
 
 
-   ion_charge<- list("K" = 1,  "Na" = 1, "NH4"  = 1 , "Mg" = 2, "Ca" = 2, "Zn" = 2, "Cu" = 2, "Co" = 2,"Al" = 3,  
-                 "Fe" = 3, "Cl" = -1, "NO3" = -1, "HCO3" = -1,"H2PO4" = -1, "SO4" = -2,   "CO3" = -2,
+   ion_charge<- list("K" = 1,  "Na" = 1, "NH4"  = 1 , "Mg" = 2, "Ca" = 2, "Zn" = 2, "Cu" = 2, "Co" = 2, "Sr" = 2, "Al" = 3,  
+                 "Fe" = 3, "Ti" = 4, "Cl" = -1, "NO3" = -1, "HCO3" = -1,"H2PO4" = -1, "Br"=-1, "SO4" = -2,   "CO3" = -2,
                   "HPO4" = -2, "MoO4" = -2, "SiO3" = -2, "BO3" =  -3,
                    "C6H5O7" = -3, "PO4" = -3,"EDTA" = -3)
   
    ion_MR <- list("Mg" = 24.31, "Ca" = 40.08, "Zn" = 65.38, "Cu" = 63.55, "Na" = 22.99, "Al" = 26.98, "K" = 39.10, 
                  "Fe" = 55.85, "Cl" = 35.45, "NO3" = 62.01, "SO4" = 96.06,  "PO4" =94.97, "CO3" = 100.09,
                  "HCO3" = 61.02, "H2PO4" = 96.99,"HPO4" = 95.99, "BO3" =  58.81, "MoO4" = 159.95, "SiO3" = 76.08, "NH4"  = 18.04 ,
-                 "Co" = 28.01, "C6H5O7" = 498.46, "EDTA" = 292.24 )
+                 "Co" = 28.01, "C6H5O7" = 498.46, "EDTA" = 292.24, "Sr" = 87.62, "Br" = 79.904, "Ti"=47.867)
   
   if(molar == FALSE){
     
@@ -143,11 +143,11 @@ ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0,
       #convert atoms/molecules of arguments from mass concentration (mg/L) to molar concentration (mol/L)
       eval(parse(text=paste(compound,"=",compound, "/(ion_MR[[compound]]*1000)",sep="")))
     }
-    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
-                            "-1" = Cl+NO3+HCO3+H2PO4, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA ) #in mol/L
+    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co+Sr , "+3"= Al+Fe, "+4"=Ti,
+                            "-1" = Cl+NO3+HCO3+H2PO4+Br, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA ) #in mol/L
   }else{
-    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co , "+3"= Al+Fe,
-                            "-1" = Cl+NO3+HCO3+H2PO4, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA  )
+    ion_valence_concentation <- list("+1" = K+Na+NH4, "+2" = Mg+Ca+Zn+Cu+Co+Sr , "+3"= Al+Fe, "+4"=Ti,
+                            "-1" = Cl+NO3+HCO3+H2PO4+Br, "-2" = SO4+CO3+HPO4+MoO4+SiO3, "-3" = BO3+C6H5O7+PO4+EDTA  )
     for (compound in names(ion_charge)){
       #convert atoms/molecules of arguments from mass concentration (mg/L) to molar concentration (mol/L)
       eval(parse(text=paste(compound,"=",compound,"*(ion_MR[[compound]]*1000)",sep="")))
@@ -185,3 +185,37 @@ Dryls_buffer <- ion_calc(Na = 0.006+0.002+0.002, C6H5O7 = 0.002, H2PO4 = 0.002,
 E3 <- ion_calc(Na = 0.005, Cl = 0.005 + 0.00017 + 0.00066,
                K = 0.00017, Ca = 0.00033, Mg = 0.00033, SO4 = 0.00033 ,
                molar = TRUE)
+
+# Brunelli et al., 2013
+AFW <- ion_calc(Ca=0.1, K=0.1, Mg=0.1, Na=54.72, Sr=0.1, Cl=0.1, BO3=0.1, Br=0.1,
+                SiO3=0.1, SO4=0.1, HCO3=145.22,
+                molar = FALSE)
+
+AEW <- ion_calc(Ca=5.61, K=5.86, Mg=18.47, Na=156.10, Sr=0.1, Cl=274.41, BO3=0.59, Br=0.8,
+                SiO3=0.1, SO4=46.11, HCO3=1.83,
+                molar = FALSE)
+
+ASW1 <- ion_calc(Ca=274.53, K=344.06, Mg=1167.13, Na=10204.80, 
+                 Sr=0.1, Cl=17650.28, BO3=21.76, Br=0.1,
+                 SiO3=0.1, SO4=2986.54, HCO3=145.20,
+                 molar = FALSE)
+
+ASW2 <- ion_calc(Ca=403.99, K=402.32, Mg=1296.43, Na=10922.32, 
+                 Sr=6.13, Cl=19203.47, BO3=28.81, Br=67.12,
+                 SiO3=10.65, SO4=3227.65, HCO3=145.20,
+                 molar = FALSE)
+
+LW <- ion_calc(Ca=413.12, K=413.7, Mg=1341.07, Na=11287.76, 
+               Sr=0.1, Cl=19255.87, BO3=54.83, Br=141.92,
+               SiO3=0.1, SO4=2933.41, HCO3=0.1,
+               molar = FALSE)
+
+SW <- ion_calc(Ca=427.04, K=466.97, Mg=1405.15, Na=11647.63, 
+               Sr=0.1, Cl=21052.65, BO3=71.89, Br=153.15,
+               SiO3=0.1, SO4=2987.76, HCO3=0.1,
+               molar = FALSE)
+
+# Ji et al., 2010
+BEGM <- ion_calc(Cl=3985, SO4=15.1, PO4=203, Na=3041, Mg= 13.8, Al=0.03,
+                 K=51, Ca=5, Ti=0.01,
+                 molar=FALSE)
