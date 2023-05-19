@@ -96,9 +96,7 @@ media <- list("PBS" = list("KH2PO4" = 144,  "NaCl" = 9000, "Na2HPO4·7H20" = 795)
                                 "CaCl2" = 18, "MgSO4·7H2O" = 15, "K2HPO4" = 1.6,
                                 "FeCl3·6H20" = 0.08, "Na2EDTA" = 0.1, "H3BO3" = 0.185,
                                 "MnCl2·4H20" = 0.415, "ZnCl2" = 0.003, "CoCl2·6H20" = 0.0015, "Na2MoO4·2H20" = 0.007,
-                                "CuCl2·2H20" = 0.0001),
-              
-              "f2" = list("NaNO3" = 75, "NaH2PO4·H20" = 5, "Na2CO3")) #mg/L
+                                "CuCl2·2H20" = 0.0001)) #mg/L
 
 
 IS <- list("PBS" = 0,  "RPMI1640" = 0, "DMEM" = 0, "L-15" = 0,  "EMEM" = 0,
@@ -107,14 +105,67 @@ IS <- list("PBS" = 0,  "RPMI1640" = 0, "DMEM" = 0, "L-15" = 0,  "EMEM" = 0,
 Salinity <- list("PBS" = 0,  "RPMI1640" = 0, "DMEM" = 0,"L-15" = 0,  "EMEM" = 0, 
                  "M199" = 0, "Dryls_Buffer" = 0, "E3" = 0, "BG-11" = 0, "SM7"  = 0,  "ILM" = 0, "MMD" = 0, "ISO_8692" = 0)
 
+Hardness <- list("PBS" = 0,  "RPMI1640" = 0, "DMEM" = 0,"L-15" = 0,  "EMEM" = 0, 
+                 "M199" = 0, "Dryls_Buffer" = 0, "E3" = 0, "BG-11" = 0, "SM7"  = 0,  "ILM" = 0, "MMD" = 0, "ISO_8692" = 0)
+
+Ion_con <- list("PBS" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "RPMI1640" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "DMEM" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0),
+                "L-15" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0),
+                "EMEM" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "M199" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0),
+                "Dryls_Buffer" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "E3" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "BG-11" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "SM7"  = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "ILM" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "MMD" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0), 
+                "ISO_8692" = list("+1" = 0, "+2" = 0, "+3"= 0,"-1" = 0, "-2" = 0, "-3" = 0))
+
+
+ion_charge<- list("K" = 1,  "Na" = 1, "NH4"  = 1 , "Mg" = 2, "Ca" = 2, "Zn" = 2, "Cu" = 2, "Co" = 2,"Al" = 3,  
+                  "Fe" = 3, "Cl" = -1, "NO3" = -1, "HCO3" = -1,"H2PO4" = -1, "SO4" = -2,   "CO3" = -2,
+                  "HPO4" = -2, "MoO4" = -2, "SiO3" = -2, "BO3" =  -3,
+                  "C6H5O7" = -3, "PO4" = -3,"EDTA" = -3)
+
+ion_MR <- list("Mg" = 24.31, "Ca" = 40.08, "Zn" = 65.38, "Cu" = 63.55, "Na" = 22.99, "Al" = 26.98, "K" = 39.10, 
+               "Fe" = 55.85, "Cl" = 35.45, "NO3" = 62.01, "SO4" = 96.06,  "PO4" =94.97, "CO3" = 100.09,
+               "HCO3" = 61.02, "H2PO4" = 96.99,"HPO4" = 95.99, "BO3" =  58.81, "MoO4" = 159.95, "SiO3" = 76.08, "NH4"  = 18.04 ,
+               "Co" = 28.01, "C6H5O7" = 498.46, "EDTA" = 292.24 )
+
+
 for(medium in names(media)){
   for(compound in names(media[[medium]])){
+    moles <- media[[medium]][[compound]][1]/(MR[[compound]]*1000)
     #Ionic Strength
     IS[[medium]] <- IS[[medium]] + ((molar_yield[[compound]][1]* valence[[compound]][1]^2 + 
-                                       molar_yield[[compound]][2]* valence[[compound]][2]^2)*
-                                      media[[medium]][[compound]][1]/(MR[[compound]]*1000))/2
+                                       molar_yield[[compound]][2]* valence[[compound]][2]^2)*moles)/2
     #Salinity
-    Salinity[[medium]] <- Salinity[[medium]] +  MR_no_water[[compound]]*media[[medium]][[compound]][1]/(MR[[compound]]*1000)
+    Salinity[[medium]] <- Salinity[[medium]] +  MR_no_water[[compound]]*moles
+    for(ion in names(ion_charge)){
+      #check if the ion is in the salt
+      if(grepl(ion,compound, fixed = TRUE)){
+        if(ion_charge[[ion]]==1){
+          Ion_con[[medium]][["+1"]] <-  Ion_con[[medium]][["+1"]]  + molar_yield[[compound]][1]*moles
+        }else if(ion_charge[[ion]]==2){
+          Ion_con[[medium]][["+2"]] <- Ion_con[[medium]][["+2"]]+ molar_yield[[compound]][1]*moles
+          if(ion ==  "Mg"){
+            Hardness[[medium]] <- Hardness[[medium]] + 4.118*molar_yield[[compound]][1]*moles*ion_MR$Mg*1000
+          }else if(ion ==  "Ca"){
+            Hardness[[medium]] <- Hardness[[medium]] + 2.497**molar_yield[[compound]][1]*moles*ion_MR$Ca*1000
+          }
+        }else if(ion_charge[[ion]]==3){
+          Ion_con[[medium]][["+3"]] <- Ion_con[[medium]][["+3"]] + molar_yield[[compound]][1]*moles
+        }else if(ion_charge[[ion]]==-1){
+          Ion_con[[medium]][["-1"]] <- Ion_con[[medium]][["-1"]] + molar_yield[[compound]][2]*moles
+        }else if(ion_charge[[ion]]==-2){
+          Ion_con[[medium]][["-2"]] <- Ion_con[[medium]][["-2"]] + molar_yield[[compound]][2]*moles
+        }else if(ion_charge[[ion]]==-3){
+          Ion_con[[medium]][["-3"]] <-  Ion_con[[medium]][["-3"]] + molar_yield[[compound]][2]*moles
+        }
+      }
+    }
+    
   }
 }
 
@@ -161,30 +212,10 @@ ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0, Sr =
 
 #Tso et al.2010
 
-#Tso_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
-#Tso_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
+Tso_2008_lake <- ion_calc(Cl = 22.59, NO3 = 1.17, SO4 = 16.62, Ca = 47.3, Mg = 2.92,   molar = FALSE)
+Tso_2008_ww <- ion_calc(Cl = 241.1, NO3 = 11.8, SO4 = 682.9, Ca = 13.9, Mg = 3.17,   molar = FALSE)
 
-MMD <- ion_calc(Ca = 0.00126 , Cl = 0.00252+0.000986+0.00533+0.137931, Mg = 0.000986+0.000814, 
-                SO4 = 0.000814, K = 0.00533+0.000441, H2PO4 = 0.000441, Na = 0.137931+0.002676,
-                HPO4=0.001338,molar=TRUE)
 
-M199 <- ion_calc(Ca = 0.001802, Cl = 0.002604+0.00533+0.11724, Fe = 0.0000017, NO3 = 0.0000017, 
-                 Mg = 0.000814, SO4 = 0.000814, K = 0.00533, 
-                 Na = 0.11724+0.001014, H2PO4 = 0.001014 , 
-                 molar = TRUE)
-
-EMEM <- ion_calc(Ca = 0.001801, Cl = 0.002602+0.4+6.8, Mg = 0.09767, SO4 = 0.09767,
-                 K = 0.4, Na = 2.2+6.8+0.140, HCO3 = 2.2, H2PO4 = 0.140,
-                 molar=TRUE)
-
-Dryls_buffer <- ion_calc(Na = 0.006+0.002+0.002, C6H5O7 = 0.002, H2PO4 = 0.002, 
-                         HPO4 = 0.001, Ca = 0.0015,
-                         Cl = 0.003,  
-                         molar = TRUE)
-
-E3 <- ion_calc(Na = 0.005, Cl = 0.005 + 0.00017 + 0.00066,
-               K = 0.00017, Ca = 0.00033, Mg = 0.00033, SO4 = 0.00033 ,
-               molar = TRUE)
 
 # Brunelli et al., 2013
 AFW <- ion_calc(Ca=0.1, K=0.1, Mg=0.1, Na=54.72, Sr=0.1, Cl=0.1, BO3=0.1, Br=0.1,
