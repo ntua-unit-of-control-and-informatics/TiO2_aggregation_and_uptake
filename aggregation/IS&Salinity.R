@@ -185,7 +185,7 @@ for(medium in names(media)){
 # Function for estimating alkalinity, hardness and ion molarity
 #if molar is TRUE, provide the molarity of each ion in mol/L, else provide ion mass in mg/L
 ion_calc <- function(Mg = 0, Ca = 0, Zn = 0, Cu = 0, Na = 0, Al = 0, K = 0, Sr = 0, Br = 0,
-                 Fe = 0, Cl = 0, NO3 = 0, SO4 = 0,  PO4 =0, CO3 = 0, HCO3 = 0, H2PO4 = 0, HPO4 = 0, BO3 =  0, 
+                 Fe = 0,  Cl = 0, NO3 = 0, SO4 = 0,  PO4 =0, CO3 = 0, HCO3 = 0, H2PO4 = 0, HPO4 = 0, BO3 =  0, 
                  MoO4 = 0, SiO3 = 0, NH4  = 0, Ti=0, Mn=0, B=0, P=0, Ba=0, Fluorine=0,
                  Co = 0,  C6H5O7 = 0, EDTA = 0, Si=0, molar = FALSE){
 
@@ -420,3 +420,21 @@ Otto_EPA_mh <- ion_calc(HCO3 = 64, Na = 32, K=2, Ca=17, Mg=14, Mn=0,
 Otto_EPA_vh <- ion_calc(HCO3 = 255, Na = 130, K=8, Ca=69, Mg=56, Mn=0,
                         Cl=8, NO3 = 0, SO4 = 298, Si = 0, Al = 0, Fe=0,
                         molar = FALSE)
+
+
+
+# Zhu et al., (2015)
+Zhu_XM <- ion_calc(Mg = 34.39, Ca = 77.72, Na = 82.55,K = 30, Fluorine = 14.956, Cl = 126.33, NO3 = 6.34, SO4 = 106.28,  
+                   PO4 =2.75, CO3 = 0, HCO3 = 181, molar = FALSE)
+
+Zhu_XH <- ion_calc(Mg = 31.11, Ca = 81.24, Na = 69.65, K = 21.93, Fluorine = 12.80, Cl = 102.85, NO3 = 5.39, SO4 = 93.28, 
+                   PO4 =2.15, HCO3 = 204,  molar = FALSE)
+
+
+
+# Keller et al., (2010)
+Keller_seawater <- ion_calc(Mg = 1361.4, Ca = 398, Na = 10620,K = 377.8,  Cl = 19333, NO3 = 0.45, SO4 = 3133,  
+                   PO4 =0.4, CO3 = 0, HCO3 = 221, molar = FALSE)
+
+Keller_freshwater <- ion_calc(Mg = 11.37, Ca = 17.66, Na = 55.81, K = 22.28, Cl = 103.3, NO3 = 2.1, SO4 = 56.70, 
+                   PO4 =15, HCO3 = 61,  molar = FALSE)

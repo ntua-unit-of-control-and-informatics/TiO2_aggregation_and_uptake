@@ -64,15 +64,15 @@ aggregation_df <- data[ , !(names(data) %in% drops)]
 
 
 colnames(aggregation_df) <- c("Study" , "Nominal.Size",  "Aspect.ratio",  "Nominal.SSA" ,    "Mean.HD",    
-                       "Anatase.Crystal",  "Coating",  "Surface.property",       
-                       "Time", "Concentration",   "Conductivity",  
-                       "Ionic.Strength","Electrolyte.mixture", "p1.ions", "p2.ions", "p3.ions",
-                       "n1.ions", "n2.ions", "n3.ions",   "Salinity", "Alkalinity", "Hardness", "TOC", "SS",             
-                       "DOC", "TDS","NOM",  "Light.Conditions",
-                       "pH",  "Medium.type", "BSA",   "Humic.Acid",  "Tannic.acid",  "Fulvic.Acid",      
-                       "a-amylase",  "Alginate", "SDBS",  "SDS",
-                       "Stock",      
-                       "Sonication.time",    "Sonication.power", "Zeta.Potential")
+                              "Anatase.Crystal",  "Coating",  "Surface.property",       
+                              "Time", "Concentration",   "Conductivity",  
+                              "Ionic.Strength","Electrolyte.mixture", "p1.ions", "p2.ions", "p3.ions",
+                              "n1.ions", "n2.ions", "n3.ions",   "Salinity", "Alkalinity", "Hardness", "TOC", "SS",             
+                              "DOC", "TDS","NOM",  "Light.Conditions",
+                              "pH",  "Medium.type", "BSA",   "Humic.Acid",  "Tannic.acid",  "Fulvic.Acid",      
+                              "a-amylase",  "Alginate", "SDBS",  "SDS",
+                              "Stock",      
+                              "Sonication.time",    "Sonication.power", "Zeta.Potential")
 
 
 # Convert all categorical variables to factors
@@ -95,11 +95,9 @@ aggregation_df <- aggregation_df[!aggregation_df$Mean.HD>3000, ]
 
 
 studies <- unique(aggregation_df$Study)
-Test_studies <- c("Chen et al., 2019",      "Lu et al., 2015",         
-                 "Arze et al.,2020",       "Tada-Oikawa et al.,2016",     "Fang et al., 2017",                   
-                  "Suzuki et al., 2020",    "Tso et al., 2010",  
-                   "Xiong et al., 2013", "Keller et al., 2010", "Tan et al., 2021",
-                  "Hartmann et al.2009", "Dai et al., 2022", "Li et al.2013" )
+Test_studies <- c( "Iswarya et al.2019", "Kose et al., 2020", "Tso et al., 2010",  
+                   "Wu et al., 2014",
+                   "Xiong et al., 2013", "Keller et al., 2010","Tan et al., 2021" )
 
 Test_data <- aggregation_df[aggregation_df$Study %in% Test_studies,]
 Test_id <- Test_data$Study
@@ -134,7 +132,7 @@ trainControl<-trainControl(method="repeatedcv", number=10, repeats=3)
 tunegrid <- expand.grid(.mtry=c(30))
 set.seed(135)
 fitRF<-train(Mean.HD ~ ., data = Train_scaled_dmy, method="rf", trControl=trainControl ,tuneGrid=tunegrid,
-              ntree= 50,importance=TRUE)
+             ntree= 50,importance=TRUE)
 fitRF
 varImp(fitRF)$importance %>% 
   as.data.frame() %>%
