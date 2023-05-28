@@ -130,7 +130,7 @@ Test_scaled_dmy[is.na(Test_scaled_dmy)]<--20
 
 
 # RF
-trainControl<-trainControl(method="repeatedcv", number=10, repeats=3)
+trainControl<-trainControl(method="repeatedcv", number=5, repeats=3)
 tunegrid <- expand.grid(.mtry=c(30))
 set.seed(135)
 fitRF<-train(Mean.HD ~ ., data = Train_scaled_dmy, method="rf", trControl=trainControl ,tuneGrid=tunegrid,
@@ -149,10 +149,10 @@ varImp(fitRF)$importance %>%
 
 #XGB
 
-trainControl<-trainControl(method="repeatedcv", number=10, repeats=3,verboseIter = FALSE,allowParallel = FALSE, savePredictions=TRUE)
-tunegrid <- expand.grid(nrounds = 200,
-                        max_depth = 5 ,
-                        eta = 0.15,
+trainControl<-trainControl(method="repeatedcv", number=5, repeats=3,verboseIter = FALSE,allowParallel = FALSE, savePredictions=TRUE)
+tunegrid <- expand.grid(nrounds = 300,
+                        max_depth = 8 ,
+                        eta = 0.25,
                         gamma = 0,
                         colsample_bytree = 0.8,
                         min_child_weight = 1,
@@ -164,51 +164,162 @@ fitXGB<-train(Mean.HD~ ., data = Train_scaled_dmy,method="xgbTree", trControl=tr
 fitXGB
 
 
+#SVM
+# part c: save parameters in tune grid object
+tune_grid_svm <- expand.grid(sigma = c(0.5),
+                             C = c( 100))
+set.seed(135)
+fitSVM<-train(Mean.HD~ ., data = Train_scaled_dmy, method="svmRadial", 
+              trControl=trainControl, tuneGrid=tune_grid_svm)
+fitSVM
+
+
+#GBM
+trainControl <- trainControl(method="cv", number=5)
+
+set.seed(99)
+caretGrid <- expand.grid(interaction.depth=c(15), n.trees = c(10000),
+                         shrinkage=c(0.01),
+                         n.minobsinnode=c(0.1))
+trainControl<-trainControl(method="repeatedcv", number=5, repeats=3,savePredictions=TRUE)
+set.seed(63454)
+fitGBM <- train( Mean.HD~ ., data = Train_scaled_dmy,distribution="gaussian", 
+                 method = "gbm", trControl = trainControl,
+                 tuneGrid=caretGrid, metric="Rsquared", bag.fraction=0.75, verbose=FALSE)
+fitGBM
+
+#NN
+trainControl<-trainControl(method="repeatedcv", number=5, repeats=3,savePredictions=TRUE)
+set.seed(135)
+tune.grid.neuralnet <- expand.grid(
+  layer1 = 30,
+  layer2 = 100,
+  layer3 = 30
+)
+fitNN <- caret::train(Mean.HD~ ., data = Train_scaled_dmy,
+                      method = "neuralnet",
+                      tuneGrid = tune.grid.neuralnet,
+                      trControl = trainControl, metric="MAE")
+fitNN
+
+
 #-----------------------------
 # Predictions on Train
 #-----------------------------
 
 predRF_train_scaled<-predict(fitRF, newdata=Train_scaled_dmy)
 predRF_train<-predRF_train_scaled*sd_y+mean_y
-cor(predRF_train, Train_data$Mean.HD)
-rmse(predRF_train,Train_data$Mean.HD)
-Rsquare(predRF_train,Train_data$Mean.HD)
-R2(predRF_train, Train_data$Mean.HD)
-ggplot(Train_data, mapping=aes(Mean.HD,predRF_train, color=predRF_train))+
+cor(predRF_train, Train_data$Zeta.Potential)
+rmse(predRF_train,Train_data$Zeta.Potential)
+Rsquare(predRF_train,Train_data$Zeta.Potential)
+R2(predRF_train, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predRF_train, color=predRF_train))+
   geom_point()+
   geom_abline()
+
+predSVM_train_scaled<-predict(fitSVM, newdata=Train_scaled_dmy)
+predSVM_train<-predSVM_train_scaled*sd_y+mean_y
+cor(predSVM_train, Train_data$Zeta.Potential)
+rmse(predSVM_train,Train_data$Zeta.Potential)
+Rsquare(predSVM_train,Train_data$Zeta.Potential)
+R2(predSVM_train, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predSVM_train, color=predSVM_train))+
+  geom_point()+
+  geom_abline()
+
+
+predNN_train_scaled<-predict(fitNN, newdata=Train_scaled_dmy)
+predNN_traiN<-predNN_train_scaled*sd_y+mean_y
+cor(predNN_traiN, Train_data$Zeta.Potential)
+rmse(predNN_traiN,Train_data$Zeta.Potential)
+Rsquare(predNN_traiN,Train_data$Zeta.Potential)
+R2(predNN_traiN, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predNN_traiN, color=predNN_traiN))+
+  geom_point()+
+  geom_abline()
+
 
 predXGB_train_scaled<-predict(fitXGB, newdata=Train_scaled_dmy)
 predXGB_train<-predXGB_train_scaled*sd_y+mean_y
-cor(predXGB_train, Train_data$Mean.HD)
-rmse(predXGB_train,Train_data$Mean.HD)
-Rsquare(predXGB_train,Train_data$Mean.HD)
-R2(predXGB_train, Train_data$Mean.HD)
-ggplot(Train_data, mapping=aes(Mean.HD,predXGB_train, color=predXGB_train))+
+cor(predXGB_train, Train_data$Zeta.Potential)
+rmse(predXGB_train,Train_data$Zeta.Potential)
+Rsquare(predXGB_train,Train_data$Zeta.Potential)
+R2(predXGB_train, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predXGB_train, color=predXGB_train))+
   geom_point()+
   geom_abline()
 
+
+predGBM_train_scaled<-predict(fitGBM, newdata=Train_scaled_dmy)
+predGBM_train<-predGBM_train_scaled*sd_y+mean_y
+cor(predGBM_train, Train_data$Zeta.Potential)
+rmse(predGBM_train,Train_data$Zeta.Potential)
+Rsquare(predGBM_train,Train_data$Zeta.Potential)
+R2(predGBM_train, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predGBM_train, color=predGBM_train))+
+  geom_point()+
+  geom_abline()
 ### PREDICTIONS OF THE MODELS ON THE TEST SET
 
 predRF_test_scaled<-predict(fitRF, newdata=Test_scaled_dmy)
 predRF_test<-predRF_test_scaled*sd_y+mean_y
-cor(predRF_test, Test_data$Mean.HD)
-rmse(predRF_test,Test_data$Mean.HD)
-Rsquare(predRF_test,Test_data$Mean.HD)
-R2(predRF_test, Test_data$Mean.HD)
-ggplot(Test_data, mapping=aes(Mean.HD,predRF_test, color=predRF_test))+
+cor(predRF_test, Test_data$Zeta.Potential)
+rmse(predRF_test,Test_data$Zeta.Potential)
+Rsquare(predRF_test,Test_data$Zeta.Potential)
+R2(predRF_test, Test_data$Zeta.Potential)
+ggplot(Test_data, mapping=aes(Zeta.Potential,predRF_test, color=predRF_test))+
+  geom_point()+
+  geom_abline()
+
+predSVM_test_scaled<-predict(fitSVM, newdata=Test_scaled_dmy)
+predSVM_test<-predSVM_test_scaled*sd_y+mean_y
+cor(predSVM_test, Test_data$Zeta.Potential)
+rmse(predSVM_test,Test_data$Zeta.Potential)
+Rsquare(predSVM_test,Test_data$Zeta.Potential)
+R2(predSVM_test, Test_data$Zeta.Potential)
+ggplot(Test_data, mapping=aes(Zeta.Potential,predSVM_test, color=predSVM_test))+
+  geom_point()+
+  geom_abline()
+
+predNN_test_scaled<-predict(fitNN, newdata=Test_scaled_dmy)
+predNN_test<-predNN_test_scaled*sd_y+mean_y
+cor(predNN_test, Test_data$Zeta.Potential)
+rmse(predNN_test,Test_data$Zeta.Potential)
+Rsquare(predNN_test,Test_data$Zeta.Potential)
+R2(predNN_test, Test_data$Zeta.Potential)
+ggplot(Test_data, mapping=aes(Zeta.Potential,predNN_test, color=predNN_test))+
   geom_point()+
   geom_abline()
 
 predXGB_test_scaled<-predict(fitXGB, newdata=Test_scaled_dmy)
 predXGB_test<-predXGB_test_scaled*sd_y+mean_y
-cor(predXGB_test, Test_data$Mean.HD)
-rmse(predXGB_test,Test_data$Mean.HD)
-Rsquare(predXGB_test,Test_data$Mean.HD)
-R2(predXGB_test, Test_data$Mean.HD)
-ggplot(Test_data, mapping=aes(Mean.HD,predXGB_test, color=predXGB_test))+
+cor(predXGB_test, Test_data$Zeta.Potential)
+rmse(predXGB_test,Test_data$Zeta.Potential)
+Rsquare(predXGB_test,Test_data$Zeta.Potential)
+R2(predXGB_test, Test_data$Zeta.Potential)
+ggplot(Test_data, mapping=aes(Zeta.Potential,predXGB_test, color=predXGB_test))+
   geom_point()+
   geom_abline()
+
+
+predGBM_test_scaled<-predict(fitGBM, newdata=Test_scaled_dmy)
+predGBM_test<-predGBM_test_scaled*sd_y+mean_y
+cor(predGBM_test, Test_data$Zeta.Potential)
+rmse(predGBM_test,Test_data$Zeta.Potential)
+Rsquare(predGBM_test,Test_data$Zeta.Potential)
+R2(predGBM_test, Test_data$Zeta.Potential)
+ggplot(Test_data, mapping=aes(Zeta.Potential,predGBM_test, color=predGBM_test))+
+  geom_point()+
+  geom_abline()
+### SUMMARY & MODEL CORRELATION
+
+Resembles<-resamples(list(RF=fitRF,SVM=fitSVM, XGB=fitXGB, GBM=fitGBM ))
+summary(Resembles)
+dotplot(Resembles)
+modelCor(Resembles, metric="RMSE")
+splom(Resembles, metric="RMSE")
+
+
 
 
 ### SUMMARY & MODEL CORRELATION

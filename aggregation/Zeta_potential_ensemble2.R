@@ -12,6 +12,8 @@ library(neuralnet)
 ## R version 3.5.1
 ## SET WORKING DIRECTORY
 setwd("C:/Users/ptsir/Documents/GitHub/TiO2_aggregation_and_uptake/aggregation")
+setwd("C:/Users/user/Documents/GitHub/TiO2_aggregation_and_uptake/aggregation")
+
 #### FUNCTIONS FOR MODEL STATISTICS
 rmse = function(m, o){
   sqrt(mean((m - o)^2))
@@ -185,7 +187,7 @@ tune.grid.neuralnet <- expand.grid(
 fitNN <- caret::train(Zeta.Potential~ ., data = Train_scaled_dmy,
   method = "neuralnet",
   tuneGrid = tune.grid.neuralnet,
-  trControl = trainControl, metric="Rsquared")
+  trControl = trainControl, metric="MAE")
 fitNN
 
 
@@ -232,13 +234,13 @@ ggplot(Train_data, mapping=aes(Zeta.Potential,predSVM_train, color=predSVM_train
   geom_abline()
 
 
-predΝΝ_train_scaled<-predict(fitSVM, newdata=Train_scaled_dmy)
-predΝΝ_train<-predΝΝ_train_scaled*sd_y+mean_y
-cor(predΝΝ_train, Train_data$Zeta.Potential)
-rmse(predΝΝ_train,Train_data$Zeta.Potential)
-Rsquare(predΝΝ_train,Train_data$Zeta.Potential)
-R2(predΝΝ_train, Train_data$Zeta.Potential)
-ggplot(Train_data, mapping=aes(Zeta.Potential,predΝΝ_train, color=predΝΝ_train))+
+predNN_train_scaled<-predict(fitNN, newdata=Train_scaled_dmy)
+predNN_traiN<-predNN_train_scaled*sd_y+mean_y
+cor(predNN_traiN, Train_data$Zeta.Potential)
+rmse(predNN_traiN,Train_data$Zeta.Potential)
+Rsquare(predNN_traiN,Train_data$Zeta.Potential)
+R2(predNN_traiN, Train_data$Zeta.Potential)
+ggplot(Train_data, mapping=aes(Zeta.Potential,predNN_traiN, color=predNN_traiN))+
   geom_point()+
   geom_abline()
 
@@ -326,53 +328,58 @@ splom(Resembles, metric="RMSE")
 
 
 
+### SUMMARY & MODEL CORRELATION
+
+Resembles<-resamples(list(RF=fitRF,XGB=fitXGB))
+summary(Resembles)
+dotplot(Resembles)
+modelCor(Resembles, metric="RMSE")
+splom(Resembles, metric="RMSE")
+
+
+
+
 
 ### ENSEMBLES ON THE TRAIN SET *********************************************
 #### ENSEMBLE with 2 MODELS
-#A.- RF+SVM
+#A.- RF+XGB
 ## Data
-Ensemble_Train <-data.frame(RF= predRF_train_scaled, SVM=predSVM_train_scaled,
-                            XGB=predXGB_train_scaled,
-                            GBM=predGBM_train_scaled, Zeta = Train_scaled_dmy$Zeta.Potential)#NN=predNN_train_scaled,)
-Ensemble_Test <-data.frame(RF= predRF_test_scaled, SVM=predSVM_test_scaled, 
-                          XGB=predXGB_test_scaled,
-                           GBM=predGBM_test_scaled,Zeta = Test_scaled_dmy$Zeta.Potential)# NN=predNN_test_scaled,
+Ensemble_Train <-data.frame(RF= predRF_train_scaled, XGB=predXGB_train_scaled, Mean.HD = Train_scaled_dmy$Mean.HD)
+Ensemble_Test <-data.frame(RF= predRF_test_scaled, XGB=predXGB_test_scaled, Mean.HD = Test_scaled_dmy$Mean.HD)
 
 ## Stack the Ensemble with RF algorithm
 
-trainControl<-trainControl(method="repeatedcv", number=5, repeats=3,savePredictions=TRUE)
-tunegrid <- expand.grid(.mtry=4)
- 
-set.seed(135)
-RFEnsemble<-caret::train(Zeta~ ., data = Ensemble_Train, method="rf", tuneGrid = tunegrid,
-                         trControl=trainControl,ntree=10000,importance=TRUE)
-RFEnsemble
+trainControl<-trainControl(method="repeatedcv", number=10, repeats=3,savePredictions=TRUE)
+tunegrid <- expand.grid(.mtry=2)
 
+set.seed(135)
+RFEnsemble<-caret::train(Mean.HD~ ., data = Ensemble_Train, method="rf", trControl=trainControl,ntree=100,importance=TRUE)
+RFEnsemble
 
 ## Make predictions on the datasets with the Ensemble
 
 RFEnsembleTrain_scaled <- predict(RFEnsemble, newdata = Ensemble_Train)
 RFEnsembleTrain <- RFEnsembleTrain_scaled*sd_y+mean_y
-cor(RFEnsembleTrain, Train_data$Zeta.Potential)
-R2(RFEnsembleTrain,  Train_data$Zeta.Potential)
-Rsquare(RFEnsembleTrain,  Train_data$Zeta.Potential)
-rmse(RFEnsembleTrain,  Train_data$Zeta.Potential)
-ggplot(Train_data, mapping=aes(Zeta.Potential,RFEnsembleTrain, color=RFEnsembleTrain))+
+cor(RFEnsembleTrain, Train_data$Mean.HD)
+R2(RFEnsembleTrain,  Train_data$Mean.HD)
+Rsquare(RFEnsembleTrain,  Train_data$Mean.HD)
+rmse(RFEnsembleTrain,  Train_data$Mean.HD)
+ggplot(Train_data, mapping=aes(Mean.HD,RFEnsembleTrain, color=RFEnsembleTrain))+
   geom_point()+
   geom_abline()
 
 
 RFEnsembleTest_scaled <- predict(RFEnsemble, newdata = Ensemble_Test)
 RFEnsembleTest <- RFEnsembleTest_scaled*sd_y+mean_y
-cor(RFEnsembleTest, Test_data$Zeta.Potential)
-R2(RFEnsembleTest, Test_data$Zeta.Potential)
-Rsquare(RFEnsembleTest, Test_data$Zeta.Potential)
-rmse(RFEnsembleTest, Test_data$Zeta.Potential)
-ggplot(Test_data, mapping=aes(Zeta.Potential,RFEnsembleTest, color=RFEnsembleTest))+
+cor(RFEnsembleTest, Test_data$Mean.HD)
+R2(RFEnsembleTest, Test_data$Mean.HD)
+Rsquare(RFEnsembleTest, Test_data$Mean.HD)
+rmse(RFEnsembleTest, Test_data$Mean.HD)
+ggplot(Test_data, mapping=aes(Mean.HD,RFEnsembleTest, color=RFEnsembleTest))+
   geom_point()+
   geom_abline()
 
 
-COMBO_Test<-data.frame( ID = Test_id, Data= Test_data$Zeta.Potential, RF=predRF_test, SVM =predSVM_test, ENS =RFEnsembleTest )
-COMBO_Train<-data.frame( ID = Train_id, Data= Train_data$Zeta.Potential, RF=predRF_train, SVM =predSVM_train, ENS = RFEnsembleTrain)
+COMBO_Test<-data.frame( ID = Test_id, Data= Test_data$Mean.HD, RF=predRF_test, XGB =predXGB_test, ENS =RFEnsembleTest )
+COMBO_Train<-data.frame( ID = Train_id, Data= Train_data$Mean.HD, RF=predRF_train, XGB =predXGB_train, ENS = RFEnsembleTrain)
 
